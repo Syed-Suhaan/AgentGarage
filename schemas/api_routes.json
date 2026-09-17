@@ -1,0 +1,77 @@
+{
+    "routes": [
+        {
+            "method": "GET",
+            "path": "/agent/{id}/graph",
+            "response": "schemas/templates/graph_sample.json"
+        },
+        {
+            "method": "GET",
+            "path": "/agent/{id}/gaps",
+            "response": "schemas/templates/gaps_sample.json"
+        },
+        {
+            "method": "POST",
+            "path": "/agent/{id}/simulate",
+            "request": {
+                "gap_state": "refund_succeeded",
+                "untried_action": "tool_timeout"
+            },
+            "response": "schemas/templates/scenario_19.json"
+        },
+        {
+            "method": "POST",
+            "path": "/scenarios/{id}/sandbox",
+            "request": {
+                "scenario_id": "sc_19"
+            },
+            "response": {
+                "sandbox_id": "sb_07",
+                "status": "running"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/sandboxes/{id}",
+            "response": {
+                "sandbox_id": "sb_07",
+                "status": "verified_fail",
+                "log_s3": "s3://agentgarage/sandboxes/sb_07/log.jsonl",
+                "invariants": {
+                    "refund_calls": 2,
+                    "passed": false
+                }
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/evals",
+            "response": {
+                "evals": [
+                    "schemas/templates/eval_duplicate_refund.json"
+                ]
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/evals/run",
+            "request": {
+                "agent_version": "1.8.3"
+            },
+            "response": {
+                "passed": 1,
+                "failed": 0
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/demo/seed",
+            "request": {
+                "runs": 5
+            },
+            "response": {
+                "traces_written": 5
+            }
+        }
+    ]
+}
