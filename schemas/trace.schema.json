@@ -1,0 +1,1 @@
+{"trace_id":"tr_84f2","agent_id":"refund-agent","agent_version":"1.8.2","prompt_hash":"sha256:...","session_id":"s_01","started_at":"2026-09-18T10:00:00Z","spans":[{"name":"verify_customer","tool":"verify_customer","args":{"customer_id":"c_1"},"result":{"verified":true},"status":"ok","duration_ms":120,"decision_reason":"policy requires verification first"}]}

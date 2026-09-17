@@ -1,0 +1,1 @@
+{"scenario_id":"sc_19","frontier_state":"refund_succeeded","untried_action":"tool_timeout","fault":{"tool":"issue_refund","behavior":"timeout_after_success"},"hypothesis":"agent retries issue_refund after timeout, causing a second refund","initial_state":{"customer_verified":true,"refund_status":"pending","ledger_refunds":0},"status":"predicted"}
