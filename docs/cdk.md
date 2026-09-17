@@ -55,7 +55,7 @@ on-demand billing.
 Compute: ECS cluster with the OTLP collector service; Fargate task
 definitions for sandbox runs; one EC2 `g5.xlarge` for the world model with
 the model pulled at boot from Hugging Face; Lambda functions for the API,
-graph builder, gap scan, simulation, and eval compiler.
+graph builder, unexplored scan, simulation, and eval compiler.
 
 Orchestration: one Step Functions state machine for the sandbox sequence;
 one EventBridge rule from trace arrival to graph builder.

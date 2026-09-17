@@ -1,6 +1,6 @@
 {
     "scenario_id": "sc_19",
-    "gap_state": "refund_succeeded",
+    "unexplored_state": "refund_succeeded",
     "untried_action": "tool_timeout",
     "fault": {
         "tool": "issue_refund",

@@ -7,14 +7,14 @@
         },
         {
             "method": "GET",
-            "path": "/agent/{id}/gaps",
-            "response": "schemas/templates/gaps_sample.json"
+            "path": "/agent/{id}/unexplored",
+            "response": "schemas/templates/unexplored_sample.json"
         },
         {
             "method": "POST",
             "path": "/agent/{id}/simulate",
             "request": {
-                "gap_state": "refund_succeeded",
+                "unexplored_state": "refund_succeeded",
                 "untried_action": "tool_timeout"
             },
             "response": "schemas/templates/scenario_19.json"
