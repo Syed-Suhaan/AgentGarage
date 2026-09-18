@@ -1,0 +1,4 @@
+{
+  "name": "AgentGarage",
+  "install": "bash .cursor/install.sh"
+}
