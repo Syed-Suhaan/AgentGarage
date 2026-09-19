@@ -9,16 +9,9 @@ def _load(name):
     return json.loads((TEMPLATES / name).read_text())
 
 
-def get_graph(agent_id):
-    return _load("graph_sample.json")
-
-
-def get_unexplored(agent_id):
-    return _load("unexplored_sample.json")
-
-
-def simulate(agent_id, body):
-    return _load("scenario_19.json")
+get_graph = lambda _id: _load("graph_sample.json")
+get_unexplored = lambda _id: _load("unexplored_sample.json")
+simulate = lambda _id, _body: _load("scenario_19.json")
 
 
 def start_sandbox(scenario_id):
