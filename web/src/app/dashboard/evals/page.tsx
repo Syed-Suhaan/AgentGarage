@@ -51,11 +51,11 @@ export default function EvalsPage() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-amber-500/30 bg-amber-500/10 px-3 py-0.5 text-[11px] font-mono text-amber-400 mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span>PHASE 4 — PROTECTED</span>
+            <span>PHASE 4 — PERM EVALS</span>
           </div>
-          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Regression Evals Suite</h1>
+          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Perm Evals</h1>
           <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-            Permanent evaluation gates converted from verified failures with zero false positives.
+            Permanent evaluation gates converted from verified failure paths into regression barriers with zero false positives.
           </p>
         </div>
         <div className="flex items-center gap-2.5">

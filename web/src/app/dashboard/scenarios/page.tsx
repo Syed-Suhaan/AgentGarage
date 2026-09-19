@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSimulate } from "@/lib/hooks/use-scenarios";
 import { useStartSandbox } from "@/lib/hooks/use-sandbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,15 +39,22 @@ export default function ScenariosPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-zinc-500/40 bg-zinc-500/10 px-3 py-0.5 text-[11px] font-mono text-zinc-300 mb-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 animate-pulse" />
-          <span>PHASE 2 — PREDICTED SCENARIOS</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-red-500/40 bg-red-500/10 px-3 py-0.5 text-[11px] font-mono text-red-400 mb-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
+            <span>PHASE 3 — DANGER PATHS TEST</span>
+          </div>
+          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Danger Scenarios</h1>
+          <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
+            Hypothetical failure scenarios generated from unexplored paths, configured with synthetic faults.
+          </p>
         </div>
-        <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Adversarial Scenarios</h1>
-        <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-          Hypothetical failure scenarios generated from unexplored gaps, configured with synthetic faults.
-        </p>
+        <Link href="/dashboard/sandboxes">
+          <Button size="sm" variant="outline" className="border-dashed border-red-500/30 bg-red-500/10 hover:border-red-500 text-red-400 text-xs font-mono">
+            Open Danger Paths Test (with sandbox) →
+          </Button>
+        </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

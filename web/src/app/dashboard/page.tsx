@@ -153,9 +153,9 @@ export default function DashboardOverview() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/dashboard/graph">
-          <Card className="group cursor-pointer transition-all border border-dashed border-[#2a2a28] bg-[#141413] hover:border-blue-500/50 hover:bg-[#181816]">
+          <Card className="group cursor-pointer transition-all border border-dashed border-[#2a2a28] bg-[#141413] hover:border-blue-500/50 hover:bg-[#181816] h-full">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -176,7 +176,7 @@ export default function DashboardOverview() {
         </Link>
 
         <Link href="/dashboard/gaps">
-          <Card className="group cursor-pointer transition-all border border-dashed border-[#2a2a28] bg-[#141413] hover:border-zinc-400/50 hover:bg-[#181816]">
+          <Card className="group cursor-pointer transition-all border border-dashed border-[#2a2a28] bg-[#141413] hover:border-zinc-400/50 hover:bg-[#181816] h-full">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -184,9 +184,30 @@ export default function DashboardOverview() {
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-zinc-200 transition-colors">Unexplored Gaps</p>
-                    <p className="text-xs font-mono text-[#8f8f8d]">
-                      {edgeCounts.predicted} untested paths
+                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-zinc-200 transition-colors">Unexplored Paths</p>
+                    <p className="text-[11px] font-mono text-red-400/90">
+                      (dangerous paths highlights)
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-[#8f8f8d] group-hover:translate-x-1 group-hover:text-[#f3f3f1] transition-all" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/sandboxes">
+          <Card className="group cursor-pointer transition-all border border-dashed border-[#2a2a28] bg-[#141413] hover:border-red-500/50 hover:bg-[#181816] h-full">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 text-red-400">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-red-400 transition-colors">Danger Paths Test</p>
+                    <p className="text-[11px] font-mono text-[#8f8f8d]">
+                      (with sandbox)
                     </p>
                   </div>
                 </div>
@@ -197,7 +218,7 @@ export default function DashboardOverview() {
         </Link>
 
         <Link href="/dashboard/evals">
-          <Card className="group cursor-pointer transition-all border border-dashed border-[#2a2a28] bg-[#141413] hover:border-amber-500/50 hover:bg-[#181816]">
+          <Card className="group cursor-pointer transition-all border border-dashed border-[#2a2a28] bg-[#141413] hover:border-amber-500/50 hover:bg-[#181816] h-full">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -205,7 +226,7 @@ export default function DashboardOverview() {
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-amber-400 transition-colors">Regression Evals</p>
+                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-amber-400 transition-colors">Perm Evals</p>
                     <p className="text-xs font-mono text-[#8f8f8d]">
                       {evalsData?.evals.length || 0} protected evaluations
                     </p>
@@ -251,7 +272,7 @@ export default function DashboardOverview() {
             {/* Step 2 */}
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-zinc-500/30 bg-zinc-500/10 px-3 py-2 text-xs font-mono text-zinc-300">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 opacity-60" />
-              <span>2. Unexplored Behaviour</span>
+              <span>2. Unexplored Paths</span>
             </div>
 
             {/* Dash connector 2 */}
@@ -265,7 +286,7 @@ export default function DashboardOverview() {
             {/* Step 3 */}
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-[#2a2a28] bg-[#181816] px-3 py-2 text-xs font-mono text-[#f3f3f1]">
               <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 opacity-60" />
-              <span>3. Simulated Scenario</span>
+              <span>3. Danger Paths Test</span>
             </div>
 
             {/* Dash connector 3 */}
@@ -293,7 +314,7 @@ export default function DashboardOverview() {
             {/* Step 5 */}
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-mono text-amber-400">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              <span>5. Permanent Eval</span>
+              <span>5. Perm Eval</span>
             </div>
           </div>
           <p className="text-xs text-[#8f8f8d] mt-4 font-mono">
