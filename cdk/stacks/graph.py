@@ -1,25 +1,15 @@
-"""Neptune Serverless property graph + query/builder Lambdas.
-
-Vertices: state. Edges: action with agent_id, status, count.
-Query Lambda serves GET /agent/{id}/graph + /unexplored.
-Builder Lambda runs on S3 trace arrival and writes edges.
-"""
+"""Neptune Serverless + query/builder Lambdas using services.graph.app."""
 import aws_cdk as cdk
 from aws_cdk import (
     aws_ec2 as ec2,
+    aws_events as events,
+    aws_events_targets as targets,
     aws_iam as iam,
     aws_lambda as _lambda,
     aws_neptune as neptune,
 )
 
-QUERY_CODE = """import json
-def handler(event, context):
-    return {"statusCode": 200, "body": json.dumps({"nodes": [], "edges": []})}
-"""
-
-BUILDER_CODE = """def handler(event, context):
-    return {"ok": True}
-"""
+from backend_asset import backend_code
 
 
 class Graph(cdk.NestedStack):
@@ -27,14 +17,13 @@ class Graph(cdk.NestedStack):
         super().__init__(scope, id, **kwargs)
         self.mode = mode
         is_demo = mode == "demo"
+        code = backend_code()
 
         self.subnet_group = neptune.CfnDBSubnetGroup(
             self,
             "SubnetGroup",
             db_subnet_group_description=f"AgentGarage {mode} neptune subnets",
-            subnet_ids=[
-                s.subnet_id for s in network.vpc.private_subnets
-            ],
+            subnet_ids=[s.subnet_id for s in network.vpc.private_subnets],
         )
 
         self.cluster = neptune.CfnDBCluster(
@@ -66,12 +55,24 @@ class Graph(cdk.NestedStack):
 
         self.cluster_endpoint = self.cluster.get_att("Endpoint").to_string()
 
+        env = {
+            "MODE": mode,
+            "NEPTUNE_ENDPOINT": self.cluster_endpoint,
+        }
+        if storage is not None:
+            env["TRACES_BUCKET"] = storage.traces_bucket.bucket_name
+            env["SESSIONS_TABLE"] = storage.sessions_table.table_name
+            env["JOBS_TABLE"] = storage.jobs_table.table_name
+            env["EVALS_TABLE"] = storage.evals_table.table_name
+            env["EVALS_BUCKET"] = storage.evals_bucket.bucket_name
+            env["SANDBOXES_BUCKET"] = storage.sandbox_logs_bucket.bucket_name
+
         self.graph_query_fn = _lambda.Function(
             self,
             "QueryFn",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            handler="index.handler",
-            code=_lambda.Code.from_inline(QUERY_CODE),
+            handler="services.graph.app.lambda_handler",
+            code=code,
             vpc=network.vpc,
             vpc_subnets=ec2.SubnetSelection(
                 subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
@@ -79,14 +80,15 @@ class Graph(cdk.NestedStack):
             security_groups=[network.lambda_sg],
             timeout=cdk.Duration.seconds(30),
             memory_size=512,
-            environment={
-                "MODE": mode,
-                "NEPTUNE_ENDPOINT": self.cluster_endpoint,
-            },
+            environment=env,
         )
         self.graph_query_fn.add_to_role_policy(
             iam.PolicyStatement(
-                actions=["neptune-db:connect", "neptune-db:ReadDataViaQuery"],
+                actions=[
+                    "neptune-db:connect",
+                    "neptune-db:ReadDataViaQuery",
+                    "neptune-db:WriteDataViaQuery",
+                ],
                 resources=["*"],
             )
         )
@@ -95,8 +97,8 @@ class Graph(cdk.NestedStack):
             self,
             "BuilderFn",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            handler="index.handler",
-            code=_lambda.Code.from_inline(BUILDER_CODE),
+            handler="services.graph.app.lambda_handler",
+            code=code,
             vpc=network.vpc,
             vpc_subnets=ec2.SubnetSelection(
                 subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
@@ -104,16 +106,31 @@ class Graph(cdk.NestedStack):
             security_groups=[network.lambda_sg],
             timeout=cdk.Duration.seconds(60),
             memory_size=512,
-            environment={
-                "MODE": mode,
-                "NEPTUNE_ENDPOINT": self.cluster_endpoint,
-            },
+            environment=env,
         )
         self.graph_builder_fn.add_to_role_policy(
             iam.PolicyStatement(
-                actions=["neptune-db:connect", "neptune-db:WriteDataViaQuery"],
+                actions=[
+                    "neptune-db:connect",
+                    "neptune-db:ReadDataViaQuery",
+                    "neptune-db:WriteDataViaQuery",
+                ],
                 resources=["*"],
             )
         )
         if storage is not None:
             storage.traces_bucket.grant_read(self.graph_builder_fn)
+            storage.traces_bucket.grant_read(self.graph_query_fn)
+            storage.sessions_table.grant_read_data(self.graph_query_fn)
+            storage.jobs_table.grant_read_data(self.graph_query_fn)
+            # EventBridge (not S3 notification) avoids Storage <-> Graph cycle
+            events.Rule(
+                self,
+                "TraceArrival",
+                event_pattern=events.EventPattern(
+                    source=["aws.s3"],
+                    detail_type=["Object Created"],
+                    detail={"bucket": {"name": [storage.traces_bucket.bucket_name]}},
+                ),
+                targets=[targets.LambdaFunction(self.graph_builder_fn)],
+            )

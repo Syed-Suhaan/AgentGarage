@@ -1,6 +1,7 @@
-__pycache__/
+﻿__pycache__/
 .pytest_cache/
 cdk/cdk.out/
+cdk/build/
 .venv/
 .DS_Store
 web/node_modules/
@@ -9,3 +10,7 @@ web/out/
 web/.env.local
 *.tsbuildinfo
 web/tsconfig.tsbuildinfo
+.env
+.env.*
+*.pem
+credentials.json

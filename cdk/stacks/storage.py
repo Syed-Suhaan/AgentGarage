@@ -38,6 +38,7 @@ class Storage(cdk.NestedStack):
                 encryption_key=self.key,
                 versioned=True,
                 block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+                event_bridge_enabled=True,
                 lifecycle_rules=[s3.LifecycleRule(expiration=cdk.Duration.days(1))]
                 if is_demo
                 else None,

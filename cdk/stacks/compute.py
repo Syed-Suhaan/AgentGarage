@@ -1,14 +1,4 @@
-"""Compute: Fargate sandbox + Bedrock-native simulation_fn with BYOK override.
-
-Trust split preserved: simulation_fn gets bedrock:InvokeModel +
-scoped secretsmanager:GetSecretValue. Sandbox task gets ZERO model IAM.
-
-simulation_fn logic:
-  default -> bedrock:InvokeModel in-region, writes `predicted` scenarios
-             (e.g. sc_19 shape) to DDB/S3.
-  BYOK    -> if agents row has model_override {endpoint, secret_arn},
-             fetch secret + call customer endpoint instead.
-"""
+"""Compute: Fargate sandbox + Bedrock simulation_fn (services.simulate)."""
 import aws_cdk as cdk
 from aws_cdk import (
     aws_ec2 as ec2,
@@ -17,23 +7,20 @@ from aws_cdk import (
     aws_lambda as _lambda,
 )
 
-SIMULATION_CODE = """import json, os
-def handler(event, context):
-    return {"statusCode": 200, "body": json.dumps({"scenario_id": "sc_19", "status": "predicted"})}
-"""
+from backend_asset import backend_code
 
 BEDROCK_MODEL_IDS = {
-    "demo": "anthropic.claude-3-haiku-20240307-v1:0",
-    "private": "anthropic.claude-3-sonnet-20240229-v1:0",
+    "demo": "anthropic.claude-haiku-4-5-20251001-v1:0",
+    "private": "anthropic.claude-sonnet-4-20250514-v1:0",
 }
 
 
 class Compute(cdk.NestedStack):
-    def __init__(self, scope, id, mode: str, network, storage, **kwargs):
+    def __init__(self, scope, id, mode: str, network, storage, graph=None, **kwargs):
         super().__init__(scope, id, **kwargs)
         self.mode = mode
-
         self.bedrock_model_id = BEDROCK_MODEL_IDS[mode]
+        code = backend_code()
 
         self.cluster = ecs.Cluster(self, "SandboxCluster", vpc=network.vpc)
 
@@ -41,7 +28,7 @@ class Compute(cdk.NestedStack):
             self,
             "SandboxSG",
             vpc=network.vpc,
-            description="Sandbox tasks: no internet egress, no model access",
+            description="Sandbox tasks: reserved for future Fargate agent image",
             allow_all_outbound=False,
         )
 
@@ -50,23 +37,21 @@ class Compute(cdk.NestedStack):
         )
         self.sandbox_task.add_container(
             "Agent",
-            image=ecs.ContainerImage.from_registry("public.ecr.aws/amazonlinux/amazonlinux:2023"),
+            image=ecs.ContainerImage.from_registry(
+                "public.ecr.aws/amazonlinux/amazonlinux:2023"
+            ),
             logging=ecs.LogDrivers.aws_logs(stream_prefix="sandbox"),
             environment={"MODE": mode},
         )
-        storage.sandbox_logs_bucket.grant_write(
-            self.sandbox_task.task_role
-        )
-        storage.traces_bucket.grant_read(self.sandbox_task.task_role)
-        # NOTE: no bedrock / secretsmanager grants to sandbox task role.
-        # Trust split: sandbox cannot reach Bedrock or the world model.
+        storage.sandbox_logs_bucket.grant_write(self.sandbox_task.task_role)
 
+        neptune_ep = graph.cluster_endpoint if graph is not None else ""
         self.simulation_fn = _lambda.Function(
             self,
             "SimulationFn",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            handler="index.handler",
-            code=_lambda.Code.from_inline(SIMULATION_CODE),
+            handler="services.simulate.app.lambda_handler",
+            code=code,
             vpc=network.vpc,
             vpc_subnets=ec2.SubnetSelection(
                 subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
@@ -79,6 +64,11 @@ class Compute(cdk.NestedStack):
                 "AGENTS_TABLE": storage.agents_table.table_name,
                 "JOBS_TABLE": storage.jobs_table.table_name,
                 "TRACES_BUCKET": storage.traces_bucket.bucket_name,
+                "SANDBOXES_BUCKET": storage.sandbox_logs_bucket.bucket_name,
+                "EVALS_BUCKET": storage.evals_bucket.bucket_name,
+                "SESSIONS_TABLE": storage.sessions_table.table_name,
+                "EVALS_TABLE": storage.evals_table.table_name,
+                "NEPTUNE_ENDPOINT": neptune_ep,
                 "BEDROCK_MODEL_ID": self.bedrock_model_id,
                 "BEDROCK_REGION": cdk.Stack.of(self).region,
             },
@@ -89,8 +79,6 @@ class Compute(cdk.NestedStack):
                 resources=["*"],
             )
         )
-        # Scoped BYOK secret read: only secrets referenced by agents rows.
-        # Wildcard scoped to account prefix; per-row ARNs enforced in code.
         self.simulation_fn.add_to_role_policy(
             iam.PolicyStatement(
                 actions=["secretsmanager:GetSecretValue"],
@@ -103,3 +91,14 @@ class Compute(cdk.NestedStack):
         storage.agents_table.grant_read_write_data(self.simulation_fn)
         storage.jobs_table.grant_read_write_data(self.simulation_fn)
         storage.traces_bucket.grant_read_write(self.simulation_fn)
+        if graph is not None:
+            self.simulation_fn.add_to_role_policy(
+                iam.PolicyStatement(
+                    actions=[
+                        "neptune-db:connect",
+                        "neptune-db:ReadDataViaQuery",
+                        "neptune-db:WriteDataViaQuery",
+                    ],
+                    resources=["*"],
+                )
+            )

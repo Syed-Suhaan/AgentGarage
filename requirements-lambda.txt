@@ -1,0 +1,2 @@
+# Lambda bundle (boto3 is in the Lambda runtime)
+strands-agents>=1.56.0

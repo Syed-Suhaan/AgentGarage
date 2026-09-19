@@ -21,9 +21,9 @@ from aws_cdk import (
     aws_sqs as sqs,
 )
 
-REDACT_CODE = """def handler(event, context):
-    return {"records": len(event.get("Records", []))}
-"""
+from backend_asset import backend_code
+
+REDACT_CODE = None  # replaced by services.collector
 
 
 class Intake(cdk.NestedStack):
@@ -31,6 +31,7 @@ class Intake(cdk.NestedStack):
         super().__init__(scope, id, **kwargs)
         self.mode = mode
         is_demo = mode == "demo"
+        code = backend_code()
 
         self.stream = kinesis.Stream(
             self,
@@ -66,7 +67,7 @@ class Intake(cdk.NestedStack):
         svc_sg.add_ingress_rule(
             peer=alb_sg,
             connection=ec2.Port.tcp(4318),
-            description="ALB -> collector",
+            description="ALB to collector",
         )
 
         self.collector_cluster = ecs.Cluster(
@@ -114,11 +115,17 @@ class Intake(cdk.NestedStack):
         listener = alb.add_listener(
             "OtlpListener", port=4318, protocol=elbv2.ApplicationProtocol.HTTP
         )
+        # ADOT collector has no HTTP root; OTLP / returns 404. Accept it so
+        # the ALB target group can mark tasks healthy (TCP not allowed on ALB HTTP).
         listener.add_targets(
             "CollectorTargets",
             port=4318,
             protocol=elbv2.ApplicationProtocol.HTTP,
             targets=[service.load_balancer_target(container_name="Otlp")],
+            health_check=elbv2.HealthCheck(
+                path="/",
+                healthy_http_codes="200,404",
+            ),
         )
         self.collector_service = service
         self.collector_url = f"http://{alb.load_balancer_dns_name}:4318"
@@ -131,8 +138,8 @@ class Intake(cdk.NestedStack):
             self,
             "RedactFn",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            handler="index.handler",
-            code=_lambda.Code.from_inline(REDACT_CODE),
+            handler="services.collector.app.lambda_handler",
+            code=code,
             vpc=network.vpc,
             vpc_subnets=ec2.SubnetSelection(
                 subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
@@ -148,6 +155,10 @@ class Intake(cdk.NestedStack):
                 "MODE": mode,
                 "TRACES_BUCKET": storage.traces_bucket.bucket_name,
                 "SESSIONS_TABLE": storage.sessions_table.table_name,
+                "JOBS_TABLE": storage.jobs_table.table_name,
+                "EVALS_TABLE": storage.evals_table.table_name,
+                "EVALS_BUCKET": storage.evals_bucket.bucket_name,
+                "SANDBOXES_BUCKET": storage.sandbox_logs_bucket.bucket_name,
             },
         )
         self.redact_fn.add_event_source(

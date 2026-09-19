@@ -1,12 +1,11 @@
-"""Persistence — S3, DynamoDB, OpenSearch. Requires AWS env (or STORE=memory for tests).
+"""Persistence for the CDK stack: S3 + DynamoDB + Neptune.
 
-Required when STORE!=memory:
-  TRACES_BUCKET SANDBOXES_BUCKET EVALS_BUCKET
-  SESSIONS_TABLE JOBS_TABLE EVALS_TABLE
-  OPENSEARCH_ENDPOINT
-  AWS_REGION
+Env (set by CDK):
+  TRACES_BUCKET SANDBOXES_BUCKET|SANDBOX_BUCKET EVALS_BUCKET
+  SESSIONS_TABLE JOBS_TABLE EVALS_TABLE AGENTS_TABLE
+  NEPTUNE_ENDPOINT  AWS_REGION
+  STORE=memory for unit tests only
 """
-import hashlib
 import json
 import os
 import uuid
@@ -26,14 +25,17 @@ def _require_aws():
         return
     missing = [
         k for k in (
-            "TRACES_BUCKET", "SANDBOXES_BUCKET", "EVALS_BUCKET",
+            "TRACES_BUCKET", "EVALS_BUCKET",
             "SESSIONS_TABLE", "JOBS_TABLE", "EVALS_TABLE",
-            "OPENSEARCH_ENDPOINT",
         )
         if not os.environ.get(k)
     ]
     if missing:
         raise RuntimeError("missing AWS env: " + ", ".join(missing))
+
+
+def _sandbox_bucket():
+    return os.environ.get("SANDBOXES_BUCKET") or os.environ.get("SANDBOX_BUCKET") or "agentgarage"
 
 
 _MEM = {"traces": {}, "sessions": [], "jobs": {}, "evals": {}, "edges": []}
@@ -53,13 +55,17 @@ def put_trace(trace):
     key = f"{agent_id}/{trace_id}.json"
     if _memory():
         _MEM["traces"][trace_id] = dict(trace)
-        _MEM["sessions"].append({"agent_id": agent_id, "trace_id": trace_id, "s3_key": key})
+        _MEM["sessions"].append({
+            "session_id": trace_id, "agent_id": agent_id, "trace_id": trace_id, "s3_key": key,
+        })
         return trace
     _s3().put_object(
         Bucket=os.environ["TRACES_BUCKET"], Key=key,
         Body=json.dumps(trace).encode(), ContentType="application/json",
     )
+    # CDK table PK is session_id
     _table("SESSIONS_TABLE").put_item(Item={
+        "session_id": trace_id,
         "agent_id": agent_id,
         "trace_id": trace_id,
         "s3_key": key,
@@ -96,23 +102,26 @@ def session_trace_ids(agent_id, limit=3):
     _require_aws()
     if _memory():
         return [s["trace_id"] for s in _MEM["sessions"] if s["agent_id"] == agent_id][:limit]
-    from boto3.dynamodb.conditions import Key
-    resp = _table("SESSIONS_TABLE").query(
-        KeyConditionExpression=Key("agent_id").eq(agent_id),
-        Limit=limit,
+    # demo-scale scan; add GSI later if needed
+    resp = _table("SESSIONS_TABLE").scan(
+        FilterExpression="agent_id = :a",
+        ExpressionAttributeValues={":a": agent_id},
+        Limit=max(limit * 5, 20),
     )
-    return [i["trace_id"] for i in resp.get("Items") or []]
+    return [i["trace_id"] for i in (resp.get("Items") or []) if i.get("trace_id")][:limit]
 
 
 def put_job(rec):
     _require_aws()
     rec = dict(rec)
-    rec["id"] = rec.get("id") or rec.get("sandbox_id") or rec.get("scenario_id")
+    job_id = rec.get("job_id") or rec.get("id") or rec.get("sandbox_id") or rec.get("scenario_id")
+    rec["job_id"] = job_id
+    rec["id"] = job_id
     if _memory():
-        _MEM["jobs"][rec["id"]] = rec
+        _MEM["jobs"][job_id] = rec
         return rec
     _table("JOBS_TABLE").put_item(Item={
-        "id": rec["id"],
+        "job_id": job_id,
         "kind": rec.get("kind") or "",
         "agent_id": rec.get("agent_id") or "",
         "doc": json.dumps(rec),
@@ -124,7 +133,7 @@ def get_job(job_id):
     _require_aws()
     if _memory():
         return _MEM["jobs"].get(job_id)
-    item = _table("JOBS_TABLE").get_item(Key={"id": job_id}).get("Item")
+    item = _table("JOBS_TABLE").get_item(Key={"job_id": job_id}).get("Item")
     return json.loads(item["doc"]) if item else None
 
 
@@ -132,19 +141,21 @@ def put_sandbox_log(rec):
     _require_aws()
     rec = dict(rec)
     sid = rec["sandbox_id"]
+    rec["job_id"] = sid
     rec["id"] = sid
     rec["kind"] = "sandbox"
-    bucket = os.environ.get("SANDBOXES_BUCKET") or "agentgarage"
+    bucket = _sandbox_bucket()
     rec["log_s3"] = f"s3://{bucket}/{sid}/log.jsonl"
     if not _memory():
+        b = os.environ.get("SANDBOXES_BUCKET") or os.environ.get("SANDBOX_BUCKET")
         _s3().put_object(
-            Bucket=os.environ["SANDBOXES_BUCKET"],
+            Bucket=b,
             Key=f"{sid}/log.jsonl",
             Body="".join(json.dumps(s) + "\n" for s in rec.get("log") or []).encode(),
         )
         slim = {k: v for k, v in rec.items() if k != "log"}
         _s3().put_object(
-            Bucket=os.environ["SANDBOXES_BUCKET"],
+            Bucket=b,
             Key=f"{sid}/result.json",
             Body=json.dumps(slim).encode(),
             ContentType="application/json",
@@ -181,16 +192,26 @@ def list_evals():
 def put_edge(edge):
     _require_aws()
     edge = dict(edge)
-    eid = _edge_id(edge)
-    if _memory():
-        _MEM["edges"] = [e for e in _MEM["edges"] if _edge_id(e) != eid]
+    if _memory() or not os.environ.get("NEPTUNE_ENDPOINT"):
+        key = (edge["agent_id"], edge["from"], edge["action"], edge.get("to"))
+        _MEM["edges"] = [
+            e for e in _MEM["edges"]
+            if (e["agent_id"], e["from"], e["action"], e.get("to")) != key
+        ]
         _MEM["edges"].append(edge)
         return edge
-    _os("PUT", f"/state-graph/_doc/{eid}", {
-        "agent_id": edge["agent_id"],
-        "from_state": edge["from"],
+    # openCypher upsert via Neptune Data API
+    q = (
+        "MERGE (a:state {id: $from, agent_id: $agent}) "
+        "MERGE (b:state {id: $to, agent_id: $agent}) "
+        "MERGE (a)-[r:action {agent_id: $agent, name: $action}]->(b) "
+        "SET r.status = $kind, r.source = $source, r.count = coalesce(r.count, 0) + 1"
+    )
+    _neptune(q, {
+        "agent": edge["agent_id"],
+        "from": edge["from"],
+        "to": edge.get("to") or "unknown",
         "action": edge["action"],
-        "to_state": edge.get("to") or "unknown",
         "kind": edge.get("kind") or "observed",
         "source": edge.get("source") or "",
     })
@@ -199,28 +220,25 @@ def put_edge(edge):
 
 def edges(agent_id):
     _require_aws()
-    if _memory():
+    if _memory() or not os.environ.get("NEPTUNE_ENDPOINT"):
         return [e for e in _MEM["edges"] if e.get("agent_id") == agent_id]
-    data = _os("POST", "/state-graph/_search", {
-        "size": 10000,
-        "query": {"term": {"agent_id": {"value": agent_id}}},
-    })
+    q = (
+        "MATCH (a:state)-[r:action]->(b:state) "
+        "WHERE r.agent_id = $agent "
+        "RETURN a.id AS from_state, r.name AS action, b.id AS to_state, "
+        "r.status AS kind, r.source AS source"
+    )
+    rows = _neptune(q, {"agent": agent_id})
     out = []
-    for hit in (data.get("hits") or {}).get("hits") or []:
-        s = hit.get("_source") or {}
+    for row in rows:
         out.append({
-            "from": s.get("from_state"),
-            "action": s.get("action"),
-            "to": s.get("to_state"),
-            "kind": s.get("kind"),
-            "source": s.get("source"),
+            "from": row.get("from_state"),
+            "action": row.get("action"),
+            "to": row.get("to_state"),
+            "kind": row.get("kind"),
+            "source": row.get("source"),
         })
     return out
-
-
-def _edge_id(e):
-    raw = "|".join([e["agent_id"], e["from"], e["action"], e.get("to") or ""])
-    return hashlib.sha256(raw.encode()).hexdigest()[:40]
 
 
 def _s3():
@@ -233,23 +251,24 @@ def _table(name):
     return boto3.resource("dynamodb").Table(os.environ[name])
 
 
-def _os(method, path, body):
+def _neptune(query, params):
     import boto3
-    import urllib.request
-    from botocore.auth import SigV4Auth
-    from botocore.awsrequest import AWSRequest
-
-    session = boto3.Session()
-    creds = session.get_credentials().get_frozen_credentials()
-    region = session.region_name or os.environ.get("AWS_REGION") or "us-east-1"
-    endpoint = os.environ["OPENSEARCH_ENDPOINT"].rstrip("/")
-    if not endpoint.startswith("http"):
-        endpoint = "https://" + endpoint
-    url = endpoint + path
-    data = json.dumps(body).encode()
-    req = AWSRequest(method=method, url=url, data=data, headers={"Content-Type": "application/json"})
-    SigV4Auth(creds, "es", region).add_auth(req)
-    http = urllib.request.Request(url, data=data, method=method, headers=dict(req.headers))
-    with urllib.request.urlopen(http, timeout=10) as resp:
-        raw = resp.read().decode()
-        return json.loads(raw) if raw else {}
+    endpoint = os.environ["NEPTUNE_ENDPOINT"].rstrip("/")
+    if endpoint.startswith("https://"):
+        endpoint = endpoint[len("https://"):]
+    if endpoint.startswith("http://"):
+        endpoint = endpoint[len("http://"):]
+    host = endpoint.split(":")[0]
+    client = boto3.client(
+        "neptunedata",
+        endpoint_url=f"https://{host}:8182",
+        region_name=os.environ.get("AWS_REGION") or "us-east-1",
+    )
+    resp = client.execute_open_cypher_query(
+        openCypherQuery=query,
+        parameters=json.dumps(params),
+    )
+    results = resp.get("results")
+    if isinstance(results, str):
+        results = json.loads(results)
+    return results or []

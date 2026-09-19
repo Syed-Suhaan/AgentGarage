@@ -105,7 +105,16 @@ def _next(state, tool, status):
 
 
 def lambda_handler(event, context=None):
-    """EventBridge / S3 ObjectCreated on the traces bucket."""
+    """API Gateway (graph/unexplored) or S3/EventBridge (index)."""
+    path = event.get("path") or event.get("rawPath") or ""
+    params = event.get("pathParameters") or {}
+    agent_id = params.get("id") or "refund-agent"
+    if "/unexplored" in path:
+        body = unexplored(agent_id)
+        return _api(200, body)
+    if "/graph" in path:
+        return _api(200, graph(agent_id))
+
     n = 0
     for rec in event.get("Records") or []:
         s3 = rec.get("s3") or {}
@@ -125,3 +134,12 @@ def lambda_handler(event, context=None):
             index_trace(trace)
             n += 1
     return {"indexed": n}
+
+
+def _api(status, body):
+    import json
+    return {
+        "statusCode": status,
+        "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(body),
+    }

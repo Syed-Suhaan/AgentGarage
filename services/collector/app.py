@@ -1,13 +1,10 @@
-"""Receives OTLP, applies Cedar redact, writes traces to S3.
-
-Architecture steps 1–3. Does not build the graph (EventBridge does that).
-"""
+"""Receives OTLP / Kinesis batches, redacts, writes traces to S3 + Dynamo."""
+import base64
 import json
 from datetime import datetime, timezone
 
 from services import store
 
-# Cedar stand-in: these keys never go to S3 or a model.
 SECRET = {
     "password", "token", "api_key", "apikey", "authorization",
     "secret", "ssn", "credit_card", "creditcard",
@@ -88,9 +85,18 @@ def _duration_ms(sp):
 
 
 def lambda_handler(event, context=None):
+    # Kinesis batch from intake
+    if event.get("Records") and event["Records"][0].get("kinesis"):
+        n = 0
+        for rec in event["Records"]:
+            raw = base64.b64decode(rec["kinesis"]["data"]).decode()
+            doc = json.loads(raw)
+            ingest(doc)
+            n += 1
+        return {"ingested": n}
+
     raw = event.get("body") or "{}"
     if event.get("isBase64Encoded"):
-        import base64
         raw = base64.b64decode(raw).decode()
     doc = json.loads(raw) if isinstance(raw, str) else raw
     trace = ingest(doc)

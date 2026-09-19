@@ -1,14 +1,6 @@
-"""Amplify dashboard + Cognito user pool.
-
-demo: self-signup on, seeded refund agent.
-private: admin-only signup (adminEmail context), no seed, data stays in VPC.
-Amplify app serves web/ with API_URL = api.url at deploy time.
-"""
+"""Cognito for API auth. Amplify skipped in regions that lack AWS::Amplify::App."""
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_amplify as amplify,
-    aws_cognito as cognito,
-)
+from aws_cdk import aws_cognito as cognito
 
 
 class Frontend(cdk.NestedStack):
@@ -39,27 +31,7 @@ class Frontend(cdk.NestedStack):
             self, "Client", user_pool=self.pool, generate_secret=False
         )
 
-        api_url = api.url
-        self.app = amplify.CfnApp(
-            self,
-            "Dashboard",
-            name=f"agentgarage-{mode}",
-            platform="WEB",
-            environment_variables=[
-                amplify.CfnApp.EnvironmentVariableProperty(
-                    name="API_URL", value=api_url
-                ),
-                amplify.CfnApp.EnvironmentVariableProperty(
-                    name="MODE", value=mode
-                ),
-            ],
-        )
-        self.branch = amplify.CfnBranch(
-            self,
-            "Main",
-            app_id=self.app.ref,
-            branch_name="main",
-            enable_auto_build=False,
-        )
-
-        self.url = f"https://{self.branch.ref}.{self.app.ref}.amplifyapp.com"
+        # Amplify (AWS::Amplify::App) is not in every region (e.g. ap-south-2).
+        # Dashboard hosting is left to the frontend team / another region.
+        self.app_id = "amplify-skipped"
+        self.url = api.url

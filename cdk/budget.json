@@ -1,0 +1,27 @@
+{
+  "BudgetName": "AgentGarage-100",
+  "BudgetLimit": {
+    "Amount": "100",
+    "Unit": "USD"
+  },
+  "CostFilters": {
+    "TagKeyValue": [
+      "user:Project$AgentGarage"
+    ]
+  },
+  "CostTypes": {
+    "IncludeTax": true,
+    "IncludeSubscription": true,
+    "UseBlended": false,
+    "IncludeRefund": false,
+    "IncludeCredit": false,
+    "IncludeUpfront": true,
+    "IncludeRecurring": true,
+    "IncludeOtherSubscription": true,
+    "IncludeSupport": true,
+    "IncludeDiscount": true,
+    "UseAmortized": false
+  },
+  "TimeUnit": "MONTHLY",
+  "BudgetType": "COST"
+}

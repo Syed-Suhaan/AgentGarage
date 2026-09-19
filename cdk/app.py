@@ -37,7 +37,9 @@ network = Network(stack, "Network", mode=mode)
 storage = Storage(stack, "Storage", mode=mode)
 graph = Graph(stack, "Graph", mode=mode, network=network, storage=storage)
 intake = Intake(stack, "Intake", mode=mode, network=network, storage=storage)
-compute = Compute(stack, "Compute", mode=mode, network=network, storage=storage)
+compute = Compute(
+    stack, "Compute", mode=mode, network=network, storage=storage, graph=graph
+)
 orchestration = Orchestration(
     stack,
     "Orchestration",
@@ -57,7 +59,7 @@ api = Api(
 )
 frontend = Frontend(stack, "Frontend", mode=mode, api=api)
 
-cdk.CfnOutput(stack, "DashboardUrl", value=frontend.app.ref)
+cdk.CfnOutput(stack, "DashboardUrl", value=frontend.url)
 cdk.CfnOutput(stack, "ApiUrl", value=api.url)
 cdk.CfnOutput(stack, "CollectorEndpoint", value=intake.collector_url)
 cdk.CfnOutput(
@@ -66,5 +68,7 @@ cdk.CfnOutput(
 cdk.CfnOutput(stack, "NeptuneEndpoint", value=graph.cluster_endpoint)
 cdk.CfnOutput(stack, "KinesisStream", value=intake.stream.stream_name)
 cdk.CfnOutput(stack, "BedrockModelId", value=compute.bedrock_model_id)
+cdk.CfnOutput(stack, "UserPoolId", value=api.auth_pool.user_pool_id)
+cdk.CfnOutput(stack, "UserPoolClientId", value=frontend.client.user_pool_client_id)
 
 app.synth()
