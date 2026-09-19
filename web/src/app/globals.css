@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 4% 3.7%; /* #0b0b0a Zoah Canvas Dark */
+    --foreground: 60 5% 95%; /* #f3f3f1 Zoah Ink */
+    --card: 60 3% 7.8%; /* #141413 Zoah Card */
+    --card-foreground: 60 5% 95%;
+    --popover: 60 3% 7.8%;
+    --popover-foreground: 60 5% 95%;
+    --primary: 60 5% 95%;
+    --primary-foreground: 60 4% 3.7%;
+    --secondary: 60 3% 13%; /* #222220 */
+    --secondary-foreground: 60 5% 95%;
+    --muted: 60 3% 11%; /* #1c1c1a */
+    --muted-foreground: 60 1% 56%; /* #8f8f8d Zoah Warm Muted */
+    --accent: 60 3% 15%; /* #26262a Zoah Surface Hover */
+    --accent-foreground: 60 5% 95%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 5% 95%;
+    --border: 60 3% 16.3%; /* #2a2a28 Zoah Line */
+    --input: 60 3% 16.3%;
+    --ring: 222 100% 62%; /* #3b76ff Zoah Cobalt */
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-color: #0b0b0a;
+    color: #f3f3f1;
+  }
+}
+
+/* React Flow overrides for Zoah dark stage */
+.react-flow__background {
+  background-color: #0b0b0a !important;
+}
+
+.react-flow__minimap {
+  background-color: #141413 !important;
+  border-radius: 0.5rem;
+  border: 1px dashed #2a2a28;
+}
+
+.react-flow__controls {
+  border-radius: 0.5rem;
+  border: 1px solid #2a2a28;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background-color: #141413 !important;
+  border-bottom: 1px solid #2a2a28 !important;
+  fill: #8f8f8d !important;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #26262a !important;
+}
+
+/* Custom scrollbar matching Zoah */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a28;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3e3e3a;
+}
+
+/* Zoah Dash Animations & Utilities */
+@keyframes dash-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes dash-flow-reverse {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 24;
+  }
+}
+
+@keyframes dash-march {
+  0% {
+    background-position: 0 100%;
+  }
+  100% {
+    background-position: 16px 100%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+}
+
+@keyframes caret-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-dash-flow {
+  animation: dash-flow 1.2s linear infinite;
+}
+
+.animate-dash-reverse {
+  animation: dash-flow-reverse 1.2s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.zoah-dash-animate {
+  stroke-dasharray: 4 4;
+  animation: dash-flow 1.2s linear infinite;
+}
+
+.zoah-dash-slow {
+  stroke-dasharray: 4 4;
+  animation: dash-flow 2.4s linear infinite;
+}
+
+.zoah-dashed-underline {
+  background-image: repeating-linear-gradient(90deg, currentColor 0, currentColor 4px, transparent 0, transparent 8px);
+  background-repeat: repeat-x;
+  background-size: 8px 1.5px;
+  background-position: 0 100%;
+  animation: dash-march 1s linear infinite;
+}
+
+.zoah-dashed-card {
+  border: 1px dashed #2a2a28;
+  background-color: #141413;
+}
+
+.zoah-dashed-card:hover {
+  border-color: #3e3e3a;
+}
+
+.zoah-dashed-badge {
+  border: 1px dashed #2a2a28;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.zoah-caret {
+  display: inline-block;
+  width: 6px;
+  height: 1em;
+  background: currentColor;
+  vertical-align: -0.15em;
+  animation: caret-blink 1s steps(2) infinite;
+}
+
+@keyframes node-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-node-enter {
+  animation: node-enter 0.4s ease-out forwards;
+}

@@ -1,4 +1,11 @@
-﻿__pycache__/
+__pycache__/
 .pytest_cache/
 cdk/cdk.out/
 .venv/
+.DS_Store
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local
+*.tsbuildinfo
+web/tsconfig.tsbuildinfo
