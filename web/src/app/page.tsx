@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown, ArrowRight, Zap, Eye, FlaskConical, Terminal, ShieldCheck } from "lucide-react";
+import { ZoahOrb } from "@/components/zoah/zoah-orb";
 
 const NAV = [
   {
@@ -37,31 +38,31 @@ const NAV = [
 const PHASES = [
   {
     kicker: "Observed",
-    title: "Map every path your agent actually took.",
+    title: "Map every path your agent\nactually took.",
     desc: "Production traces become a time-versioned graph of states, decisions and outcomes.",
     detail: "5 states · 5 edges · tr_84f2",
-    orb: "from-blue-500/60 via-slate-200/40 to-zinc-900",
+    palette: "ink" as const,
   },
   {
     kicker: "Predicted",
-    title: "Flag reachable paths it never tried.",
+    title: "Flag reachable paths\nit never tried.",
     desc: "Legal state-action pairs with no observed run are scored by risk and novelty.",
     detail: "refund_succeeded + tool_timeout · sc_19",
-    orb: "from-zinc-400/50 via-neutral-200/30 to-zinc-900",
+    palette: "violet" as const,
   },
   {
     kicker: "Verified",
-    title: "Replay hypotheses against the real agent.",
+    title: "Replay hypotheses\nagainst the real agent.",
     desc: "One isolated sandbox per scenario. Fixed rule checks move predicted to verified — never a model’s word.",
     detail: "sb_07 · refund_calls = 2 · FAIL",
-    orb: "from-red-500/60 via-rose-200/40 to-zinc-900",
+    palette: "blue" as const,
   },
   {
     kicker: "Protected",
-    title: "Keep every failure as a permanent eval.",
+    title: "Keep every failure\nas a permanent eval.",
     desc: "Verified failures compile to portable YAML evals re-run on every future version.",
     detail: "eval_duplicate_refund · protected",
-    orb: "from-amber-500/60 via-yellow-100/30 to-zinc-900",
+    palette: "sun" as const,
   },
 ];
 
@@ -72,81 +73,119 @@ const PILLARS = [
   { k: "Enforce", t: "Evals that block silent regressions.", d: "Assert-first checks like refund_calls <= 1." },
 ];
 
-function Orb({ tint }: { tint: string }) {
-  return (
-    <div className="relative h-[380px] w-[380px] shrink-0 overflow-hidden rounded-full border border-white/10 sm:h-[440px] sm:w-[440px]">
-      <div className={`absolute inset-0 bg-gradient-to-br ${tint} blur-[1px]`} />
-      <div className="absolute inset-4 rounded-full border border-white/20" />
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.5),transparent_45%),radial-gradient(circle_at_70%_70%,rgba(0,0,0,0.55),transparent_50%)]" />
-      <div className="absolute inset-8 rounded-full bg-[conic-gradient(from_40deg,transparent,rgba(255,255,255,0.25),transparent_40%)] blur-xl" />
-    </div>
-  );
-}
-
 function PhaseSection({ p, index }: { p: (typeof PHASES)[number]; index: number }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [spin, setSpin] = useState(0);
+
   const { scrollYProgress } = useScroll({
     target: trackRef,
     offset: ["start start", "end end"],
   });
 
-  // Scroll → normalized progress → scale + rotation + reveal (directly driven, reversible)
+  // Scroll → normalized progress → scale + rotation + drift (starts as small dot, expands into right-side orb)
   const scale = useTransform(scrollYProgress, [0, 0.25, 0.5, 0.75, 1], [0.03, 0.14, 0.55, 0.88, 1]);
   const rotate = useTransform(scrollYProgress, [0, 1], [0, 38]);
-  const driftX = useTransform(scrollYProgress, [0, 0.25, 1], [0, 12, 150]);
+  const driftX = useTransform(scrollYProgress, [0, 0.35, 1], ["-28vw", "-12vw", "0vw"]);
+
+  // Track spin for the liquid chrome shader
+  useEffect(() => {
+    return scrollYProgress.on("change", (v) => {
+      setSpin(v * 120);
+    });
+  }, [scrollYProgress]);
+
+  // Left-aligned text reveal
+  const headingOpacity = useTransform(scrollYProgress, [0, 0.2], [0.45, 1]);
   const descOpacity = useTransform(scrollYProgress, [0.15, 0.45], [0, 1]);
-  const descY = useTransform(scrollYProgress, [0.15, 0.5], [28, 0]);
-  const detailOpacity = useTransform(scrollYProgress, [0.5, 0.8], [0, 1]);
-  const detailY = useTransform(scrollYProgress, [0.5, 0.8], [20, 0]);
-  const headingOpacity = useTransform(scrollYProgress, [0, 0.2], [0.55, 1]);
+  const descY = useTransform(scrollYProgress, [0.15, 0.5], [24, 0]);
+  const detailOpacity = useTransform(scrollYProgress, [0.4, 0.75], [0, 1]);
+  const detailY = useTransform(scrollYProgress, [0.4, 0.75], [16, 0]);
 
   return (
-    <div ref={trackRef} className="relative h-[240vh] border-b border-white/5">
-      <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden px-4">
-        <motion.p style={{ opacity: headingOpacity }} className="text-sm text-zinc-500">
-          {p.kicker}
-        </motion.p>
-        <motion.h2
-          style={{ opacity: headingOpacity }}
-          className="mt-3 max-w-3xl text-center text-3xl font-medium tracking-tight sm:text-5xl text-white"
-        >
-          {p.title}
-        </motion.h2>
-
-        {/* Dot origin: perfectly centered under heading, grows into the circle */}
-        <div className="mt-8 flex h-[300px] items-center justify-center sm:h-[380px]">
-          <motion.div
-            style={{ scale, rotate, x: driftX, transformOrigin: "center center" }}
-            className="will-change-transform"
+    <div ref={trackRef} className="relative h-[240vh] border-b border-white/5 bg-[#0b0b0a]">
+      {/* Sticky full-screen viewport matching Picture 1 */}
+      <div className="sticky top-0 flex h-screen w-full items-center justify-between overflow-hidden px-8 sm:px-16 lg:px-24">
+        
+        {/* Left Side: Left-aligned Text (Matches Picture 1) */}
+        <div className="relative z-20 max-w-xl flex flex-col justify-center">
+          <motion.p
+            style={{ opacity: headingOpacity }}
+            className="text-base sm:text-lg font-normal text-[#8f8f8d] tracking-tight"
           >
-            <Orb tint={p.orb} />
+            {p.kicker}
+          </motion.p>
+          <motion.h2
+            style={{ opacity: headingOpacity }}
+            className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-white leading-[1.08] whitespace-pre-line"
+          >
+            {p.title}
+          </motion.h2>
+          <motion.p
+            style={{ opacity: descOpacity, y: descY }}
+            className="mt-5 text-sm sm:text-base leading-relaxed text-[#8f8f8d] max-w-md"
+          >
+            {p.desc}
+          </motion.p>
+          <motion.div
+            style={{ opacity: detailOpacity, y: detailY }}
+            className="mt-5 flex items-center"
+          >
+            <span className="inline-flex items-center gap-2 rounded-full border border-dashed border-[#2a2a28] bg-[#141413] px-3.5 py-1 font-mono text-[11px] uppercase tracking-widest text-[#8f8f8d]">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+              {p.detail}
+            </span>
           </motion.div>
         </div>
 
-        <motion.p
-          style={{ opacity: descOpacity, y: descY }}
-          className="mt-6 max-w-md text-center text-sm leading-relaxed text-zinc-400"
-        >
-          {p.desc}
-        </motion.p>
-        <motion.p
-          style={{ opacity: detailOpacity, y: detailY }}
-          className="mt-3 font-mono text-[11px] uppercase tracking-widest text-zinc-500"
-        >
-          {p.detail}
-        </motion.p>
-
-        {/* Scroll-linked progress */}
-        <div className="mt-6 h-px w-full max-w-xl bg-white/10">
-          <motion.div className="h-px origin-left bg-white" style={{ scaleX: scrollYProgress }} />
+        {/* Right Side: Giant Liquid Chrome Orb (Matches Picture 1) */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[15%] pointer-events-none z-10 flex items-center justify-center">
+          <motion.div
+            style={{
+              scale,
+              rotate,
+              x: driftX,
+              transformOrigin: "center center",
+            }}
+            className="relative h-[85vh] w-[85vh] sm:h-[94vh] sm:w-[94vh] max-w-[1100px] max-h-[1100px] will-change-transform rounded-full overflow-hidden"
+          >
+            {/* High-fidelity fallback liquid metallic gradient */}
+            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.7),transparent_50%),radial-gradient(circle_at_70%_75%,rgba(0,0,0,0.8),transparent_55%),conic-gradient(from_45deg,#1c1c1a,#8f8f8d,#f5f5f4,#2a2a28,#1c1c1a)]" />
+            <ZoahOrb
+              palette={p.palette}
+              spin={spin}
+              className="relative z-10 h-full w-full rounded-full"
+            />
+          </motion.div>
         </div>
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-zinc-700">
-          {index + 1} / {PHASES.length}
-        </p>
+
+        {/* Bottom: 4 Horizontal Track Lines (Matches Picture 1) */}
+        <div className="absolute bottom-8 left-8 right-8 z-30 sm:left-16 sm:right-16 lg:left-24 lg:right-24">
+          <div className="grid grid-cols-4 gap-4 sm:gap-8">
+            {PHASES.map((_, i) => (
+              <div
+                key={i}
+                className="relative h-[2px] w-full rounded-full bg-[#2a2a28] overflow-hidden"
+              >
+                {/* Completed phases: solid white line (just like line 1 in Picture 1) */}
+                {i < index && <div className="h-full w-full bg-white rounded-full" />}
+                {/* Active phase: progressively fills with scroll */}
+                {i === index && (
+                  <motion.div
+                    className="h-full w-full bg-white rounded-full origin-left shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+                    style={{ scaleX: scrollYProgress }}
+                  />
+                )}
+                {/* Future phases: dark track #2a2a28 (just like lines 2, 3, 4 in Picture 1) */}
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
 }
+
 
 export default function LandingPage() {
   return (
