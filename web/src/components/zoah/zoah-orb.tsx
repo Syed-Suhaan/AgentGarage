@@ -147,7 +147,9 @@ export function ZoahOrb({ palette, spin = 0, className = "" }: ZoahOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const paletteRef = useRef(palette);
   const spinRef = useRef(spin);
-  const currPalette = useRef<[number, number, number][]>(PALETTES[palette]);
+  const currPalette = useRef<[number, number, number][]>(
+    (PALETTES[palette] || PALETTES.ink).map((c) => [c[0], c[1], c[2]])
+  );
 
   paletteRef.current = palette;
   spinRef.current = spin;
@@ -214,7 +216,8 @@ export function ZoahOrb({ palette, spin = 0, className = "" }: ZoahOrbProps) {
       const elapsed = (now - startTime) / 1000;
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const size = Math.round(canvas.clientWidth * dpr);
+      const clientSize = canvas.clientWidth || canvas.parentElement?.clientWidth || 700;
+      const size = Math.max(Math.round(clientSize * dpr), 100);
       if (canvas.width !== size || canvas.height !== size) {
         canvas.width = size;
         canvas.height = size;
