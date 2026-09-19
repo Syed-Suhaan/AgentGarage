@@ -1,1 +1,1 @@
-﻿Builds state edges into OpenSearch. Finds untried state-action pairs.
+﻿Builds observed edges into OpenSearch. Scans for untried state-action pairs.

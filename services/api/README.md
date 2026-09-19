@@ -1,1 +1,1 @@
-﻿Route handlers for graph, frontier, simulate, replay, evals.
+﻿API Gateway Lambda. Routes in schemas/api_routes.json. Starts Step Functions for sandboxes.

@@ -1,1 +1,1 @@
-﻿Receives OTLP, applies Cedar redact, writes traces to S3.
+﻿Receives OTLP JSON, redacts secret keys, writes traces to S3 + Dynamo sessions.

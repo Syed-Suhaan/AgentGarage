@@ -1,1 +1,1 @@
-﻿Calls the world-model server, ranks hypotheses, writes scenarios.
+﻿POSTs to WORLD_MODEL_URL (Qwen-AgentWorld). Writes predicted scenarios only.
