@@ -94,14 +94,14 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
       </div>
 
       {/* Scrollable Inspector Body */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5 text-xs">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
         {/* State Identity Box */}
-        <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-4">
+        <div className="rounded-sm border border-dashed border-[#2a2a28] bg-[#141413] p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-3">
               <div
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg border border-dashed",
+                  "flex h-9 w-9 items-center justify-center rounded-sm border border-dashed",
                   node.isFailure
                     ? "bg-red-500/10 text-red-400 border-red-500/30"
                     : "bg-[#3b76ff]/10 text-[#3b76ff] border-[#3b76ff]/30"
@@ -176,7 +176,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
           <button
             onClick={() => setActiveTab("overview")}
             className={cn(
-              "px-3 py-1 text-xs font-mono font-medium rounded-lg transition-colors",
+              "px-3 py-1 text-xs font-mono font-medium rounded-sm transition-colors",
               activeTab === "overview"
                 ? "bg-[#3b76ff] text-white shadow-sm"
                 : "text-[#8f8f8d] hover:text-[#f3f3f1]"
@@ -187,7 +187,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
           <button
             onClick={() => setActiveTab("transitions")}
             className={cn(
-              "px-3 py-1 text-xs font-mono font-medium rounded-lg transition-colors",
+              "px-3 py-1 text-xs font-mono font-medium rounded-sm transition-colors",
               activeTab === "transitions"
                 ? "bg-[#3b76ff] text-white shadow-sm"
                 : "text-[#8f8f8d] hover:text-[#f3f3f1]"
@@ -198,7 +198,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
           <button
             onClick={() => setActiveTab("examples")}
             className={cn(
-              "px-3 py-1 text-xs font-mono font-medium rounded-lg transition-colors",
+              "px-3 py-1 text-xs font-mono font-medium rounded-sm transition-colors",
               activeTab === "examples"
                 ? "bg-[#3b76ff] text-white shadow-sm"
                 : "text-[#8f8f8d] hover:text-[#f3f3f1]"
@@ -218,7 +218,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
               Total: {node.runs} runs
             </span>
           </div>
-          <div className="space-y-1.5 rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-2.5">
+          <div className="space-y-1.5 rounded-sm border border-dashed border-[#2a2a28] bg-[#141413] p-2.5">
             {node.transitions.map((t, idx) => {
               const isFail = t.kind === "verified";
               const isObs = t.kind === "observed";
@@ -228,7 +228,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
                 <div
                   key={idx}
                   onClick={() => onSelectNode?.(t.toId)}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-[#181816] transition-colors cursor-pointer group"
+                  className="flex items-center justify-between p-2 rounded-sm hover:bg-[#181816] transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span
@@ -287,7 +287,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
 
         {/* Coverage, Risk Score, Stability Metrics */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-3 text-center">
+          <div className="rounded-sm border border-dashed border-[#2a2a28] bg-[#141413] p-2 text-center">
             <span className="text-[10px] font-mono uppercase text-[#8f8f8d] block tracking-tight">
               Coverage
             </span>
@@ -299,7 +299,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
             </span>
           </div>
 
-          <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-3 text-center">
+          <div className="rounded-sm border border-dashed border-[#2a2a28] bg-[#141413] p-2 text-center">
             <span className="text-[10px] font-mono uppercase text-[#8f8f8d] block tracking-tight">
               Risk score
             </span>
@@ -329,7 +329,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
             </span>
           </div>
 
-          <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-3 text-center">
+          <div className="rounded-sm border border-dashed border-[#2a2a28] bg-[#141413] p-2 text-center">
             <span className="text-[10px] font-mono uppercase text-[#8f8f8d] block tracking-tight">
               Stability
             </span>
@@ -354,7 +354,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
           <h4 className="text-[11px] font-mono uppercase tracking-wider text-[#8f8f8d] mb-2">
             Selected action (on this state)
           </h4>
-          <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-3.5 space-y-2.5">
+          <div className="rounded-sm border border-dashed border-[#2a2a28] bg-[#141413] p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-3.5 w-3.5 text-[#3b76ff]" />

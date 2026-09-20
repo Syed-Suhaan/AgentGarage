@@ -295,7 +295,7 @@ function BehaviourGraphInner({ graph: _graph }: BehaviourGraphProps) {
         </div>
 
         {/* Right column: Full-Height State Inspector */}
-        <div className="w-80 sm:w-96 shrink-0 border-l border-[#2a2a28] bg-[#0c0c0b] flex flex-col h-full overflow-hidden z-20">
+        <div className="w-64 sm:w-72 shrink-0 border-l border-[#2a2a28] bg-[#0c0c0b] flex flex-col h-full overflow-hidden z-20">
           {isInspectorOpen ? (
             <StateInspector
               node={activeNodeMeta}
