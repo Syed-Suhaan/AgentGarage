@@ -3,43 +3,8 @@
 import React from "react";
 
 /**
- * Clean mouse cursor pointer matching the reference diagram in Image 2.
- */
-function CursorPointer({
-  x,
-  y,
-  showHalo = true,
-}: {
-  x: number;
-  y: number;
-  showHalo?: boolean;
-}) {
-  return (
-    <g transform={`translate(${x}, ${y})`}>
-      {showHalo && (
-        <circle
-          cx="0"
-          cy="0"
-          r="9"
-          fill="rgba(255, 255, 255, 0.12)"
-          className="pointer-events-none"
-        />
-      )}
-      <path
-        d="M 0 0 L 0 15 L 4.2 11.5 L 7.5 18.5 L 9.8 17.4 L 6.5 10.5 L 12 10.5 Z"
-        fill="#0a0a0a"
-        stroke="#f4f4f5"
-        strokeWidth="1.25"
-        strokeLinejoin="round"
-      />
-    </g>
-  );
-}
-
-/**
  * 1. OBSERVE: Production-grounded map UI wireframe
- * Corresponds to "Interfacer" in reference image:
- * Frame with subpanels, skeleton text, action pill buttons, and cursor clicks.
+ * Frame with subpanels, skeleton text, and action pill buttons (clean without cursor pointer).
  */
 export function WireframeObserve() {
   return (
@@ -100,12 +65,6 @@ export function WireframeObserve() {
         stroke="currentColor"
       />
 
-      {/* Cursor pointing at the top edge of inner right panel */}
-      <CursorPointer x={108} y={38} showHalo />
-
-      {/* Cursor at bottom right edge of outer container */}
-      <CursorPointer x={224} y={78} showHalo={false} />
-
       {/* Bottom controls: 2 pill buttons */}
       {/* Left solid pill with skeleton line */}
       <rect
@@ -154,8 +113,7 @@ export function WireframeObserve() {
 
 /**
  * 2. HYPOTHESIZE: World-model proposals / Canvas wireframe
- * Corresponds to "Canvas" in reference image:
- * Frame with 3 floating cards and cursor interaction.
+ * Frame with 3 floating cards (clean without cursor pointer).
  */
 export function WireframeHypothesize() {
   return (
@@ -243,9 +201,6 @@ export function WireframeHypothesize() {
         stroke="currentColor"
       />
 
-      {/* Cursor clicking on top right card */}
-      <CursorPointer x={152} y={34} showHalo />
-
       {/* Bottom right card */}
       <rect
         x="118"
@@ -280,7 +235,6 @@ export function WireframeHypothesize() {
 
 /**
  * 3. ISOLATE: MicroVM sandboxes network
- * Corresponds to "Operand" in reference image:
  * Central server/microVM node connected to 4 satellite sandboxes via dashed routes with port nodes.
  */
 export function WireframeIsolate() {
@@ -485,8 +439,7 @@ export function WireframeIsolate() {
 
 /**
  * 4. ENFORCE: Eval regression curve & assertion
- * Corresponds to "Operators" in reference image:
- * Baseline, step threshold sigmoid curve, milestone dots, and cursor adjustment.
+ * Baseline, step threshold sigmoid curve, and milestone dots (clean without cursor pointer).
  */
 export function WireframeEnforce() {
   return (
@@ -540,9 +493,6 @@ export function WireframeEnforce() {
       <circle cx="92" cy="60" r="3" fill="#0a0a0a" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="128" cy="60" r="3" fill="#0a0a0a" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="164" cy="60" r="3" fill="#0a0a0a" stroke="currentColor" strokeWidth="1.5" />
-
-      {/* Cursor hovering at point on threshold */}
-      <CursorPointer x={164} y={56} showHalo />
     </svg>
   );
 }
