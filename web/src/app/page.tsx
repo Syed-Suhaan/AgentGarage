@@ -11,6 +11,7 @@ import {
   WireframeIsolate,
   WireframeEnforce,
 } from "@/components/zoah/pillar-wireframes";
+import { SandboxFeedCard } from "@/components/zoah/sandbox-card";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -352,26 +353,7 @@ export default function LandingPage() {
             <p className="mt-6 font-mono text-5xl font-medium text-white">1</p>
             <p className="text-sm text-zinc-500">protected eval written</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-[#111] shadow-2xl overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-white/10 p-4 text-sm font-medium text-white">
-              <Terminal className="h-4 w-4 text-blue-400" /> Sandbox sb_07 · streaming
-            </div>
-            <div className="space-y-2 p-4 font-mono text-xs leading-relaxed bg-[#0c0c0b]">
-              <p className="text-zinc-500">&gt; restoring degraded checkout snapshot</p>
-              <p className="text-zinc-400">&gt; injecting rollback_deployment → timeout_after_success</p>
-              <p className="text-blue-400">&gt; rollback_deployment → SUCCESS but TIMEOUT to agent</p>
-              <p className="text-red-400">&gt; rollback_deployment RETRY · rolled back too far</p>
-              <p className="text-red-400">&gt; INVARIANT FAIL: rollback_count = 2 (expected ≤ 1)</p>
-            </div>
-            <div className="flex gap-2 border-t border-white/10 p-4 bg-[#111]">
-              <Link href="/dashboard/sandboxes/sb_07" className="inline-flex items-center gap-1 rounded-full border border-white/15 px-4 py-2 text-xs text-zinc-200 hover:border-white/30 transition-all">
-                Open sandbox <ArrowRight className="h-3 w-3" />
-              </Link>
-              <Link href="/dashboard/evals" className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-4 py-2 text-xs font-medium text-zinc-900 hover:bg-white transition-all">
-                View eval
-              </Link>
-            </div>
-          </div>
+          <SandboxFeedCard />
         </div>
       </section>
 
