@@ -53,8 +53,9 @@ jobs:
           PIP_PREFER_BINARY: "1"
       - name: Validate SAM template
         working-directory: infra/demo
-        run: sam validate --template template.yaml
+        run: sam validate --template template.yaml --region ap-south-2
         env:
           SAM_CLI_TELEMETRY: "0"
+          AWS_DEFAULT_REGION: ap-south-2
       - name: Pytest (services)
         run: python -m pytest services -q --tb=line
