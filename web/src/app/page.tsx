@@ -5,6 +5,13 @@ import { useRef, useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown, ArrowRight, Zap, Eye, FlaskConical, Terminal, ShieldCheck } from "lucide-react";
 import { ZoahOrb } from "@/components/zoah/zoah-orb";
+import {
+  WireframeObserve,
+  WireframeHypothesize,
+  WireframeIsolate,
+  WireframeEnforce,
+} from "@/components/zoah/pillar-wireframes";
+import { cn } from "@/lib/utils";
 
 const NAV = [
   {
@@ -67,10 +74,30 @@ const PHASES = [
 ];
 
 const PILLARS = [
-  { k: "Observe", t: "A production-grounded map.", d: "States and edges with counts, versions, and sources." },
-  { k: "Hypothesize", t: "World-model proposals stay unconfirmed.", d: "Predicted stays grey until the sandbox reproduces it." },
-  { k: "Isolate", t: "AgentCore microVM sandboxes with no internet.", d: "Restore state, inject one fault, run the same agent." },
-  { k: "Enforce", t: "Evals that catch silent regressions.", d: "Assert-first checks like rollback_count <= 1." },
+  {
+    k: "Observe",
+    t: "A production-grounded map.",
+    d: "States and edges with counts, versions, and sources.",
+    Wireframe: WireframeObserve,
+  },
+  {
+    k: "Hypothesize",
+    t: "World-model proposals stay unconfirmed.",
+    d: "Predicted stays grey until the sandbox reproduces it.",
+    Wireframe: WireframeHypothesize,
+  },
+  {
+    k: "Isolate",
+    t: "AgentCore microVM sandboxes with no internet.",
+    d: "Restore state, inject one fault, run the same agent.",
+    Wireframe: WireframeIsolate,
+  },
+  {
+    k: "Enforce",
+    t: "Evals that catch silent regressions.",
+    d: "Assert-first checks like rollback_count <= 1.",
+    Wireframe: WireframeEnforce,
+  },
 ];
 
 function PhaseSection({ p, index }: { p: (typeof PHASES)[number]; index: number }) {
@@ -294,12 +321,22 @@ export default function LandingPage() {
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
           A predicted failure is a hypothesis until the real agent reproduces it. Only a failed rule check becomes an eval.
         </p>
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+        <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 lg:divide-x divide-zinc-800/80 border-t md:border-t-0 border-zinc-800/80">
           {PILLARS.map((c) => (
-            <div key={c.k} className="flex flex-col">
-              <p className="text-xs text-zinc-500 tracking-wide">{c.k}</p>
-              <h3 className="mt-3 text-lg font-medium leading-snug text-white">{c.t}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{c.d}</p>
+            <div
+              key={c.k}
+              className="flex flex-col justify-between py-6 px-4 sm:px-6 lg:px-7 first:pl-0 last:pr-0 min-h-[390px]"
+            >
+              <div>
+                <p className="text-xs text-zinc-500 font-normal tracking-wide">{c.k}</p>
+                <h3 className="mt-3 text-lg sm:text-xl font-medium leading-snug tracking-tight text-white">
+                  {c.t}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{c.d}</p>
+              </div>
+              <div className="mt-12 sm:mt-16 flex items-end justify-center w-full pt-4">
+                <c.Wireframe />
+              </div>
             </div>
           ))}
         </div>
