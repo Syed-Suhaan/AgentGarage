@@ -345,13 +345,43 @@ export default function LandingPage() {
 
       {/* Live loop card */}
       <section className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="grid gap-8 md:grid-cols-2 items-center">
-          <div>
-            <p className="text-xs text-zinc-500">Demo run · checkout rollback</p>
-            <p className="mt-2 font-mono text-5xl font-medium text-white">2</p>
-            <p className="text-sm text-zinc-500">rollbacks on the timeout path</p>
-            <p className="mt-6 font-mono text-5xl font-medium text-white">1</p>
-            <p className="text-sm text-zinc-500">protected eval written</p>
+        <div className="grid gap-12 lg:gap-16 md:grid-cols-2 items-center">
+          <div className="flex flex-col justify-center py-4">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-white leading-[1.12]">
+              Sandboxes that reproduce failures to protect your agents.
+            </h2>
+            <p className="mt-4 text-sm sm:text-base leading-relaxed text-zinc-400 max-w-lg">
+              AgentCore microVM sandboxes restore state in seconds, inject faults with zero network access, and turn unconfirmed hypotheses into permanent evals.
+            </p>
+
+            <div className="mt-8 sm:mt-10 space-y-6 sm:space-y-7">
+              <div>
+                <p className="text-4xl sm:text-5xl font-medium tracking-tight text-white">
+                  1,297
+                </p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Sandboxes executed today
+                </p>
+              </div>
+
+              <div>
+                <p className="text-4xl sm:text-5xl font-medium tracking-tight text-white">
+                  335
+                </p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Silent regressions caught
+                </p>
+              </div>
+
+              <div>
+                <p className="text-4xl sm:text-5xl font-medium tracking-tight text-white">
+                  2,225
+                </p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Protected evals verified
+                </p>
+              </div>
+            </div>
           </div>
           <SandboxFeedCard />
         </div>
