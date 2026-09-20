@@ -45,18 +45,19 @@ jobs:
 
       - name: Install tools
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-lambda.txt boto3 aws-sam-cli
-          # SAM packaging needs the lambda build dir populated
-          pip install -r requirements.txt || true
-
+          python -m pip install --upgrade pip setuptools wheel
+          pip install boto3 "aws-sam-cli>=1.120.0"
       - name: Build Lambda code
-        run: python cdk/build_lambda.py
-
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python cdk/build_lambda.py
+        env:
+          PIP_PREFER_BINARY: "1"
       - name: Deploy demo API stack (SAM)
+        working-directory: infra/demo
         run: |
           sam deploy \
-            --template-file infra/demo/template.yaml \
+            --template-file template.yaml \
             --stack-name "$DEMO_STACK" \
             --region "$AWS_REGION_API" \
             --capabilities CAPABILITY_IAM \

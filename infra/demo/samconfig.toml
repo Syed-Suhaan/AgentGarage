@@ -1,10 +1,9 @@
-version: 0.1
-default:
-  deploy:
-    parameters:
-      stack_name: agentgarage-demo
-      resolve_s3_bucket: true
-      capabilities: CAPABILITY_IAM
-      confirm_changeset: false
-      fail_on_empty_changeset: false
-      region: ap-south-2
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "agentgarage-demo"
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+fail_on_empty_changeset = false
+region = "ap-south-2"

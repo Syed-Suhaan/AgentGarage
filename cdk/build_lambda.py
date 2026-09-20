@@ -20,6 +20,7 @@ def build() -> Path:
         "-r", str(req),
         "-t", str(OUT),
         "--quiet",
+        "--prefer-binary",
     ])
     for name in ("services", "agent"):
         src = ROOT / name
