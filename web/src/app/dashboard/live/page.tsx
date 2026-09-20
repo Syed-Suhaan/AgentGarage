@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Bell, Warehouse, Sparkles, Activity } from "lucide-react";
+import { Search, Bell, Warehouse } from "lucide-react";
 import { GarageBayCanvas } from "@/components/live-garage/garage-bay-canvas";
 import { TraceInspector } from "@/components/live-garage/trace-inspector";
 import { ReplayTimeline } from "@/components/live-garage/replay-timeline";
@@ -65,8 +65,8 @@ export default function LiveGaragePage() {
       {/* Top Status & Search Strip */}
       <header className="flex h-11 items-center justify-between border-b border-[#2a2a28] bg-[#0c0c0b] px-4 shrink-0 text-xs font-mono">
         <div className="flex items-center gap-3">
-          <span className="text-[#8f8f8d] flex items-center gap-1.5 font-bold">
-            <Warehouse className="h-3.5 w-3.5 text-[#3b76ff]" />
+          <span className="text-[#f3f3f1] flex items-center gap-2 font-bold">
+            <Warehouse className="h-4 w-4 text-[#3b76ff]" />
             <span>/ Live Garage</span>
           </span>
           <div className="flex items-center gap-2 rounded-full border border-dashed border-[#2a2a28] bg-[#141413] px-2.5 py-0.5 text-[11px] text-[#8f8f8d]">
@@ -111,31 +111,38 @@ export default function LiveGaragePage() {
         </div>
       </header>
 
-      {/* Main Center Area: Sprite Bay Floor (Left) + Trace Inspector (Right) */}
-      <div className="flex flex-1 overflow-hidden relative">
-        <GarageBayCanvas
-          currentTime={currentTime}
-          selectedBay={selectedBay}
-          onSelectBay={setSelectedBay}
-        />
+      {/* 2-Column Workspace Matching Reference Design */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Column: Garage Bay Canvas (Top) + Replay Timeline (Bottom) */}
+        <div className="flex flex-col flex-1 overflow-hidden border-r border-[#2a2a28]">
+          {/* Main Garage Bay Floor */}
+          <div className="flex-1 overflow-hidden relative flex items-center justify-center bg-[#080808]">
+            <GarageBayCanvas
+              currentTime={currentTime}
+              selectedBay={selectedBay}
+              onSelectBay={setSelectedBay}
+            />
+          </div>
 
+          {/* Replay Timeline directly beneath the Garage */}
+          <ReplayTimeline
+            currentTime={currentTime}
+            duration={duration}
+            isPlaying={isPlaying}
+            playbackSpeed={playbackSpeed}
+            onSeek={handleSeek}
+            onTogglePlay={handleTogglePlay}
+            onChangeSpeed={setPlaybackSpeed}
+          />
+        </div>
+
+        {/* Right Column: Full-Height Trace Inspector */}
         <TraceInspector
           selectedBay={selectedBay}
           onSelectBay={setSelectedBay}
           currentTime={currentTime}
         />
       </div>
-
-      {/* Bottom Replay Timeline Scrubber */}
-      <ReplayTimeline
-        currentTime={currentTime}
-        duration={duration}
-        isPlaying={isPlaying}
-        playbackSpeed={playbackSpeed}
-        onSeek={handleSeek}
-        onTogglePlay={handleTogglePlay}
-        onChangeSpeed={setPlaybackSpeed}
-      />
     </div>
   );
 }
