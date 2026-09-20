@@ -1,0 +1,130 @@
+name: Deploy demo to AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION_API: ap-south-2
+  AWS_REGION_WEB: us-east-1
+  DEMO_STACK: agentgarage-demo
+  AMPLIFY_STACK: agentgarage-demo-amplify
+
+jobs:
+  deploy:
+    name: Backend + frontend
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION_API }}
+
+      - name: Install tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-lambda.txt boto3 aws-sam-cli
+          # SAM packaging needs the lambda build dir populated
+          pip install -r requirements.txt || true
+
+      - name: Build Lambda code
+        run: python cdk/build_lambda.py
+
+      - name: Deploy demo API stack (SAM)
+        run: |
+          sam deploy \
+            --template-file infra/demo/template.yaml \
+            --stack-name "$DEMO_STACK" \
+            --region "$AWS_REGION_API" \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --tags Project=AgentGarage Env=demo
+
+      - name: Read API stack outputs
+        id: api
+        run: |
+          outs=$(aws cloudformation describe-stacks \
+            --stack-name "$DEMO_STACK" \
+            --region "$AWS_REGION_API" \
+            --query 'Stacks[0].Outputs' \
+            --output json)
+          echo "$outs"
+          api_url=$(echo "$outs" | python -c "import json,sys; o={x['OutputKey']:x['OutputValue'] for x in json.load(sys.stdin)}; print(o['ApiUrl'])")
+          pool=$(echo "$outs" | python -c "import json,sys; o={x['OutputKey']:x['OutputValue'] for x in json.load(sys.stdin)}; print(o['UserPoolId'])")
+          client=$(echo "$outs" | python -c "import json,sys; o={x['OutputKey']:x['OutputValue'] for x in json.load(sys.stdin)}; print(o['UserPoolClientId'])")
+          echo "api_url=$api_url" >> "$GITHUB_OUTPUT"
+          echo "user_pool_id=$pool" >> "$GITHUB_OUTPUT"
+          echo "user_pool_client_id=$client" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Amplify host stack (us-east-1)
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/demo/amplify.yaml \
+            --stack-name "$AMPLIFY_STACK" \
+            --region "$AWS_REGION_WEB" \
+            --parameter-overrides \
+              ApiUrl="${{ steps.api.outputs.api_url }}" \
+              UserPoolId="${{ steps.api.outputs.user_pool_id }}" \
+              UserPoolClientId="${{ steps.api.outputs.user_pool_client_id }}" \
+              AwsRegion="$AWS_REGION_API" \
+            --capabilities CAPABILITY_IAM \
+            --no-fail-on-empty-changeset \
+            --tags Project=AgentGarage Env=demo
+
+      - name: Resolve Amplify app id
+        id: amplify
+        run: |
+          app_id=$(aws cloudformation describe-stacks \
+            --stack-name "$AMPLIFY_STACK" \
+            --region "$AWS_REGION_WEB" \
+            --query "Stacks[0].Outputs[?OutputKey=='AmplifyAppId'].OutputValue" \
+            --output text)
+          echo "app_id=$app_id" >> "$GITHUB_OUTPUT"
+
+      - name: Build + publish frontend to Amplify
+        env:
+          AMPLIFY_APP_ID: ${{ steps.amplify.outputs.app_id }}
+          AMPLIFY_REGION: ${{ env.AWS_REGION_WEB }}
+          NEXT_PUBLIC_API_URL: ${{ steps.api.outputs.api_url }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ steps.api.outputs.user_pool_id }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ steps.api.outputs.user_pool_client_id }}
+          NEXT_PUBLIC_AWS_REGION: ${{ env.AWS_REGION_API }}
+          NEXT_PUBLIC_DEMO_MODE: "true"
+        run: python scripts/deploy_amplify.py
+
+      - name: Summary
+        run: |
+          dash=$(aws cloudformation describe-stacks \
+            --stack-name "$AMPLIFY_STACK" \
+            --region "$AWS_REGION_WEB" \
+            --query "Stacks[0].Outputs[?OutputKey=='DashboardUrl'].OutputValue" \
+            --output text)
+          echo "### Demo deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **API:** ${{ steps.api.outputs.api_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Dashboard:** $dash" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **User pool:** ${{ steps.api.outputs.user_pool_id }}" >> "$GITHUB_STEP_SUMMARY"

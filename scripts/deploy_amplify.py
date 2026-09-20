@@ -26,6 +26,7 @@ def sh(cmd, cwd=None, env=None):
 
 def build():
     env = os.environ.copy()
+    # Prefer CI/env; fall back to last-known demo values for local runs only.
     env.setdefault(
         "NEXT_PUBLIC_API_URL",
         "https://49r4z8chma.execute-api.ap-south-2.amazonaws.com/prod/",
@@ -33,6 +34,7 @@ def build():
     env.setdefault("NEXT_PUBLIC_COGNITO_USER_POOL_ID", "ap-south-2_ZtABAKCU7")
     env.setdefault("NEXT_PUBLIC_COGNITO_CLIENT_ID", "2fc3ij52vhq8qd82u8dcl3j4k")
     env.setdefault("NEXT_PUBLIC_AWS_REGION", "ap-south-2")
+    env.setdefault("NEXT_PUBLIC_DEMO_MODE", "true")
     env.setdefault("NEXT_PUBLIC_GUEST_USERNAME", "demotest")
     env.setdefault("NEXT_PUBLIC_GUEST_PASSWORD", "DemoTest123!")
     # Prefer existing node_modules when present (faster / avoids PATH issues).

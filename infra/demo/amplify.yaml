@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AgentGarage demo Amplify host (us-east-1) — static web only
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: agentgarage-demo
+  ApiUrl:
+    Type: String
+  UserPoolId:
+    Type: String
+  UserPoolClientId:
+    Type: String
+  AwsRegion:
+    Type: String
+    Default: ap-south-2
+
+Resources:
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: !Ref ProjectName
+      Platform: WEB
+      EnvironmentVariables:
+        - Name: NEXT_PUBLIC_API_URL
+          Value: !Ref ApiUrl
+        - Name: NEXT_PUBLIC_COGNITO_USER_POOL_ID
+          Value: !Ref UserPoolId
+        - Name: NEXT_PUBLIC_COGNITO_CLIENT_ID
+          Value: !Ref UserPoolClientId
+        - Name: NEXT_PUBLIC_AWS_REGION
+          Value: !Ref AwsRegion
+        - Name: NEXT_PUBLIC_DEMO_MODE
+          Value: "true"
+
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt AmplifyApp.AppId
+      BranchName: main
+      EnableAutoBuild: false
+      Stage: PRODUCTION
+
+Outputs:
+  AmplifyAppId:
+    Value: !GetAtt AmplifyApp.AppId
+  DashboardUrl:
+    Value: !Sub "https://main.${AmplifyApp.DefaultDomain}"
+  AmplifyDefaultDomain:
+    Value: !GetAtt AmplifyApp.DefaultDomain
