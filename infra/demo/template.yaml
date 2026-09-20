@@ -150,7 +150,7 @@ Resources:
           NEPTUNE_ENDPOINT: ""
           STATE_MACHINE_ARN: ""
           AGENTCORE_RUNTIME_ARN: ""
-          BEDROCK_MODEL_ID: amazon.nova-lite-v1:0
+          BEDROCK_MODEL_ID: "amazon.nova-lite-v1:0"
           BEDROCK_REGION: us-east-1
       Policies:
         - S3CrudPolicy:

@@ -1,5 +1,8 @@
 # Live demo CI/CD (not CDK)
 
+> **Orchestrator lock (2026-09-20):** Do not `cdk deploy` for the team demo.
+> Frontend + backend ship only through these GitHub Actions workflows.
+
 CDK under `cdk/` is the **customer** one-click package — leave it for the end of the project.
 
 This path deploys the **team live demo** on every push to `main`:
