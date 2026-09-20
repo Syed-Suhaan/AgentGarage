@@ -15,10 +15,8 @@ import "@xyflow/react/dist/style.css";
 import { Search, ChevronDown, Check } from "lucide-react";
 import { StateNode } from "./state-node";
 import { ActionEdge } from "./action-edge";
-import { GraphLegend } from "./graph-legend";
 import { CanvasControls } from "./graph-controls";
 import { StateInspector } from "./state-inspector";
-import { LinkedTraceDrawer } from "./linked-trace-drawer";
 import { layoutGraph } from "@/lib/graph-layout";
 import {
   getAgentReferenceData,
@@ -289,11 +287,6 @@ function BehaviourGraphInner({ graph: _graph }: BehaviourGraphProps) {
           >
             <Background color="#1a1a18" gap={24} size={1} />
 
-            {/* Floating Legend Overlay (Bottom Left) matching reference screenshot */}
-            <div className="absolute bottom-4 left-4 z-10 pointer-events-auto">
-              <GraphLegend />
-            </div>
-
             {/* Floating Controls Toolbar (Bottom Right) */}
             <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2.5">
               <CanvasControls onCenterSelected={handleCenterSelected} />
@@ -325,16 +318,6 @@ function BehaviourGraphInner({ graph: _graph }: BehaviourGraphProps) {
           )}
         </div>
       </div>
-
-      {/* Bottom Linked Trace Drawer */}
-      <LinkedTraceDrawer
-        trace={activeDataset.trace}
-        activeNodeId={selectedNodeId}
-        onSelectNode={(id) => {
-          setSelectedNodeId(id);
-          setIsInspectorOpen(true);
-        }}
-      />
     </div>
   );
 }
