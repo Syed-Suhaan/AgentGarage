@@ -20,6 +20,10 @@ ACTION_FAULT = {
     "mid_run_403": ("rollback_deployment", "mid_run_403"),
 }
 
+# Fault behaviors the sandbox (agent/sre_tools.py) actually injects. Anything
+# else means "no injection" — see the coercion in simulate().
+KNOWN_BEHAVIORS = {behavior for _, behavior in ACTION_FAULT.values()}
+
 INITIAL_REQUIRED = ("active_version", "last_known_good", "rollback_count")
 
 
@@ -45,8 +49,18 @@ def simulate(agent_id, body):
     pred = _predict(state, action)
     tool, behavior = ACTION_FAULT.get(action, (action, action))
     if pred.get("fault"):
-        tool = pred["fault"].get("tool") or tool
-        behavior = pred["fault"].get("behavior") or behavior
+        pred_tool = pred["fault"].get("tool")
+        pred_behavior = pred["fault"].get("behavior")
+        # The world model sometimes invents placeholder faults ("example-tool")
+        # the sandbox cannot inject. Coerce unknown behaviors back to the
+        # known fault mapping for this action so judges always get a runnable
+        # scenario; truly custom actions still pass their behavior through.
+        if pred_behavior in KNOWN_BEHAVIORS:
+            tool = pred_tool or tool
+            behavior = pred_behavior
+        elif action not in ACTION_FAULT:
+            tool = pred_tool or tool
+            behavior = pred_behavior or behavior
     if not pred.get("hypothesis"):
         raise RuntimeError("world model returned no hypothesis")
     initial_state = _normalize_initial_state(pred.get("initial_state"))
