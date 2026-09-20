@@ -2,6 +2,8 @@
 
 Behavioural coverage for AI agents.
 
+![AgentGarage Live — pixel garage floor: dispatch, verify, unexplored path, sandbox bay, eval gate](docs/assets/agentgarage-live.png)
+
 Autonomous agents pick tools in a loop and branch on what they observe. They often run with broad permissions and thin guardrails. Normal tests cover a slice of the paths they can reach.
 
 AgentGarage maps which behaviours an agent has exercised, finds reachable state–action pairs it never took, predicts outcomes on those paths, ranks which predictions deserve a sandbox, replays the risky ones against the **real** agent in isolation, and keeps confirmed failures as permanent evals.
