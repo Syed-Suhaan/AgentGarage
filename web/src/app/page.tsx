@@ -347,38 +347,32 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <div className="grid gap-12 lg:gap-16 md:grid-cols-2 items-center">
           <div className="flex flex-col justify-center py-4">
+            <p className="text-xs font-mono uppercase tracking-wider text-zinc-500 mb-3">
+              Demo run · checkout rollback
+            </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-white leading-[1.12]">
-              Sandboxes that reproduce failures to protect your agents.
+              Catching the double-rollback failure.
             </h2>
             <p className="mt-4 text-sm sm:text-base leading-relaxed text-zinc-400 max-w-lg">
-              AgentCore microVM sandboxes restore state in seconds, inject faults with zero network access, and turn unconfirmed hypotheses into permanent evals.
+              When the SRE agent hits a simulated timeout during deployment rollback, it retries and rolls back one version too far. The sandbox reproduces the failure in isolation, asserts the invariant, and writes a permanent eval.
             </p>
 
-            <div className="mt-8 sm:mt-10 space-y-6 sm:space-y-7">
+            <div className="mt-8 sm:mt-10 space-y-8">
               <div>
-                <p className="text-4xl sm:text-5xl font-medium tracking-tight text-white">
-                  1,297
+                <p className="text-5xl sm:text-6xl font-medium tracking-tight text-white">
+                  2
                 </p>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Sandboxes executed today
+                <p className="mt-1.5 text-sm sm:text-base text-zinc-400">
+                  Rollbacks on the timeout path
                 </p>
               </div>
 
               <div>
-                <p className="text-4xl sm:text-5xl font-medium tracking-tight text-white">
-                  335
+                <p className="text-5xl sm:text-6xl font-medium tracking-tight text-white">
+                  1
                 </p>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Silent regressions caught
-                </p>
-              </div>
-
-              <div>
-                <p className="text-4xl sm:text-5xl font-medium tracking-tight text-white">
-                  2,225
-                </p>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Protected evals verified
+                <p className="mt-1.5 text-sm sm:text-base text-zinc-400">
+                  Protected eval written
                 </p>
               </div>
             </div>
