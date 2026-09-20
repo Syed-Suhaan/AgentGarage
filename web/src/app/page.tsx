@@ -294,10 +294,10 @@ export default function LandingPage() {
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
           A predicted failure is a hypothesis until the real agent reproduces it. Only a failed rule check becomes an eval.
         </p>
-        <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
           {PILLARS.map((c) => (
-            <div key={c.k} className="bg-[#111] p-6 hover:bg-[#141413] transition-colors">
-              <p className="text-xs text-zinc-500">{c.k}</p>
+            <div key={c.k} className="flex flex-col">
+              <p className="text-xs text-zinc-500 tracking-wide">{c.k}</p>
               <h3 className="mt-3 text-lg font-medium leading-snug text-white">{c.t}</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">{c.d}</p>
             </div>
