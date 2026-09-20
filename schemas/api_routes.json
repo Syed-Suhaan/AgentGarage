@@ -49,6 +49,27 @@
         },
         {
             "method": "GET",
+            "path": "/sandboxes",
+            "response": {
+                "sandboxes": []
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/sandboxes/{id}/promote",
+            "response": {
+                "compiled": true
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/traces",
+            "response": {
+                "traces": []
+            }
+        },
+        {
+            "method": "GET",
             "path": "/evals",
             "response": {
                 "evals": [

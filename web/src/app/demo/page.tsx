@@ -22,7 +22,7 @@ import Link from "next/link";
 const STEPS = [
   {
     step: 1,
-    title: "Seed Traces",
+    title: "Seed traces",
     description: "Run the demo SRE agent and capture production traces.",
     icon: Play,
     href: null,
@@ -30,45 +30,44 @@ const STEPS = [
   },
   {
     step: 2,
-    title: "View Graph",
-    description:
-      "See the behaviour graph drawn from observed agent paths.",
+    title: "View graph",
+    description: "See the behaviour graph drawn from observed agent paths.",
     icon: GitBranch,
     href: "/dashboard/graph",
     color: "text-blue-400",
   },
   {
     step: 3,
-    title: "Find Gaps",
+    title: "Find gaps",
     description:
-      "The graph highlights paths the agent never took — like a timeout after a successful rollback.",
+      "The graph highlights paths the agent never took, like a timeout after a successful rollback.",
     icon: Search,
     href: "/dashboard/gaps",
     color: "text-gray-400",
   },
   {
     step: 4,
-    title: "Simulate Scenario",
+    title: "Predict scenario",
     description:
-      "The world model predicts: agent will retry and roll back one version too far.",
+      "The world model predicts the agent will retry and roll back one version too far.",
     icon: FlaskConical,
     href: "/dashboard/scenarios",
     color: "text-gray-400",
   },
   {
     step: 5,
-    title: "Verify in Sandbox",
+    title: "Verify in sandbox",
     description:
-      "An AgentCore microVM sandbox creates the exact timeout and runs the real agent. Ledger shows 2 rollbacks.",
+      "The sandbox creates that timeout and runs the real agent. Invariants show rollback_count = 2.",
     icon: AlertTriangle,
-    href: "/dashboard/sandboxes/sb_07",
+    href: "/dashboard/sandboxes",
     color: "text-red-400",
   },
   {
     step: 6,
-    title: "Protect with Eval",
+    title: "Protect with eval",
     description:
-      "The verified failure becomes a permanent regression eval. No future version can silently reintroduce it.",
+      "The verified failure becomes a permanent regression eval. Future versions re-run it.",
     icon: ShieldCheck,
     href: "/dashboard/evals",
     color: "text-amber-400",
@@ -98,14 +97,13 @@ export default function DemoPage() {
           </div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-blue-500/30 bg-blue-500/10 px-3 py-0.5 text-[11px] font-mono text-blue-400 mb-3">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <span>INTERACTIVE SYSTEM WALKTHROUGH</span>
+            <span>DEMO</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-normal tracking-tight text-[#f3f3f1]">
-            AgentGarage Walkthrough
+            AgentGarage walkthrough
           </h1>
           <p className="text-[#8f8f8d] mt-2 max-w-lg mx-auto text-sm leading-relaxed">
-            Watch a live SRE agent get evaluated on a path it never encountered:
-            a tool timeout after a successful rollback.
+            Follow the SRE agent through a path it never took: a tool timeout after a successful rollback.
           </p>
         </div>
 
@@ -161,7 +159,7 @@ export default function DemoPage() {
                             ) : (
                               <Play className="h-3.5 w-3.5 mr-1.5" />
                             )}
-                            {seeded ? "Seeded!" : "Seed 5 Traces"}
+                            {seeded ? "Seeded" : "Seed 5 traces"}
                           </Button>
                         )}
                         {isActive && s.href && (
@@ -172,7 +170,7 @@ export default function DemoPage() {
                               onClick={() => setActiveStep(i + 1)}
                               className="border-dashed border-[#2a2a28] bg-[#141413] hover:border-zinc-400 font-mono text-xs"
                             >
-                              Open Step
+                              Open
                               <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
                             </Button>
                           </Link>
@@ -194,15 +192,14 @@ export default function DemoPage() {
           <Card className="mt-8 border border-dashed border-emerald-500/40 bg-emerald-500/5">
             <CardContent className="p-6 text-center">
               <CheckCircle2 className="h-8 w-8 text-emerald-400 mx-auto mb-3" />
-              <h3 className="text-lg font-mono font-semibold text-[#f3f3f1]">Walkthrough Complete</h3>
+              <h3 className="text-lg font-mono font-semibold text-[#f3f3f1]">Walkthrough complete</h3>
               <p className="text-sm font-mono text-[#8f8f8d] mt-1">
-                The double-rollback failure is now a permanent regression eval.
-                Every future agent version will be tested against it in CI/CD.
+                The double-rollback failure is now a protected eval. Future agent versions re-run it.
               </p>
               <div className="mt-4">
                 <Link href="/dashboard">
                   <Button size="sm" className="bg-[#3b76ff] hover:bg-blue-500 text-white font-mono text-xs">
-                    Return to Dashboard Overview
+                    Back to overview
                   </Button>
                 </Link>
               </div>

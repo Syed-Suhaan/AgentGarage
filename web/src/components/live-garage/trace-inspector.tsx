@@ -198,7 +198,7 @@ Eval Gate comparison failed: expected benchmark DTC P0420 (Catalytic converter e
               <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
             </div>
             <p className="mt-1 text-[10px] leading-relaxed text-blue-200">
-              Station telemetry linked to current replay timeline scrubber at {currentTime.toFixed(1)}s.
+              Linked to replay at {currentTime.toFixed(1)}s.
             </p>
           </div>
         )}
@@ -285,7 +285,7 @@ Eval Gate comparison failed: expected benchmark DTC P0420 (Catalytic converter e
             </span>
           </div>
           <p className="text-[11px] text-red-300 leading-relaxed font-mono">
-            Incorrect diagnosis. Expected P0420, agent suggested P0136.
+            Expected P0420, agent returned P0136.
           </p>
         </div>
 
@@ -298,7 +298,7 @@ Eval Gate comparison failed: expected benchmark DTC P0420 (Catalytic converter e
               className="w-full h-8 text-[11px] font-mono border-dashed border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-400 justify-start"
             >
               <RotateCcw className="h-3.5 w-3.5 mr-2" />
-              Re-run Fault Injection in Sandbox
+              Re-run in sandbox
             </Button>
           </Link>
 
@@ -309,7 +309,7 @@ Eval Gate comparison failed: expected benchmark DTC P0420 (Catalytic converter e
               className="w-full h-8 text-[11px] font-mono border-dashed border-[#2a2a28] bg-[#141413] hover:border-zinc-400 text-[#f3f3f1] justify-start"
             >
               <GitBranch className="h-3.5 w-3.5 mr-2 text-[#3b76ff]" />
-              View State in Behaviour Graph
+              Open behaviour graph
             </Button>
           </Link>
         </div>

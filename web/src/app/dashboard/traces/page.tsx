@@ -28,10 +28,9 @@ export default function TracesPage() {
           <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
           <span>PHASE 1 — OBSERVED</span>
         </div>
-        <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Production Traces</h1>
+        <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Traces</h1>
         <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-          Real execution traces and tool latency waterfalls captured from live agents.
-          Seed the demo or point an agent at the collector to see traces here.
+          Production runs that feed the behaviour graph. Seed the demo or send OTLP to the collector.
         </p>
       </div>
 
@@ -39,7 +38,7 @@ export default function TracesPage() {
         <EmptyState
           icon={<Activity className="h-10 w-10 text-[#8f8f8d]" />}
           title="No traces yet"
-          description="Run the walkthrough seed step or ingest OTLP traces — they will appear here and feed the behaviour graph."
+          description="Run the demo seed step or ingest OTLP traces. They appear here and draw the graph."
         />
       ) : (
         <div className="space-y-4">

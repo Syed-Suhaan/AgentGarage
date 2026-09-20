@@ -17,23 +17,23 @@ import { cn } from "@/lib/utils";
 const DANGER_METADATA: Record<string, { severity: "critical" | "high" | "medium"; risk: string; badge: string }> = {
   tool_timeout: {
     severity: "critical",
-    risk: "Timeout after success triggers automated retry → double rollback past last-known-good",
-    badge: "CRITICAL DANGER",
+    risk: "Timeout after success can trigger a retry that rolls back past last-known-good",
+    badge: "CRITICAL",
   },
   duplicate_callback: {
     severity: "high",
-    risk: "Concurrent callback race mutates status twice → state inconsistency",
-    badge: "HIGH DANGER",
+    risk: "Concurrent callbacks can mutate status twice and leave state inconsistent",
+    badge: "HIGH",
   },
   mid_run_403: {
     severity: "high",
-    risk: "Mid-execution permission revocation leaves checkout on the bad deploy",
-    badge: "HIGH DANGER",
+    risk: "Permission revoked mid-run can leave checkout on the bad deploy",
+    badge: "HIGH",
   },
   http_500: {
     severity: "medium",
-    risk: "Unhandled HTTP 500 fails to trigger fallback or human escalation",
-    badge: "MEDIUM RISK",
+    risk: "Unhandled HTTP 500 may skip fallback or escalation",
+    badge: "MEDIUM",
   },
 };
 
@@ -41,8 +41,8 @@ function dangerFor(action: string) {
   return (
     DANGER_METADATA[action] || {
       severity: "medium" as const,
-      risk: `Untested (${action}): the agent has never faced this transition — sandbox it to see if invariants hold.`,
-      badge: "POTENTIAL RISK",
+      risk: `Never observed for ${action}. Run it in a sandbox to check invariants.`,
+      badge: "UNTRIED",
     }
   );
 }
@@ -103,25 +103,22 @@ export default function GapsPage() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-amber-500/40 bg-amber-500/10 px-3 py-0.5 text-[11px] font-mono text-amber-300 mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span>PHASE 2 — UNEXPLORED PATHS</span>
+            <span>PREDICTED</span>
           </div>
-          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight flex items-baseline gap-2.5 flex-wrap">
-            <span>Unexplored Paths</span>
-            <span className="text-sm font-mono text-red-400 font-normal">
-              (dangerous paths highlights)
-            </span>
+          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">
+            Gaps
           </h1>
           <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-            Latent state-action trajectories flagged by the world model that have never executed in production traces.
+            Legal state-action pairs with no observed run. The world model scores them; the sandbox confirms or rejects.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded border border-dashed border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-mono text-emerald-300 flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            LIVE • synced {updatedAgo}s ago
+            Synced {updatedAgo}s ago
           </span>
           <span className="rounded border border-dashed border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-mono text-red-400 tabular-nums">
-            {gapCount} Unexplored Paths Flagged
+            {gapCount} gaps
           </span>
         </div>
       </div>
@@ -130,7 +127,7 @@ export default function GapsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-5 flex items-center gap-5 shadow-xl">
           <div className="min-w-0">
-            <p className="text-sm font-mono text-[#8f8f8d]">Observed Edges</p>
+            <p className="text-sm font-mono text-[#8f8f8d]">Observed edges</p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap">
               <span className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{observedCount}</span>
             </p>
@@ -140,7 +137,7 @@ export default function GapsPage() {
 
         <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-5 flex items-center gap-5 shadow-xl">
           <div className="min-w-0">
-            <p className="text-sm font-mono text-[#8f8f8d]">High-Risk Gaps</p>
+            <p className="text-sm font-mono text-[#8f8f8d]">High-risk gaps</p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap">
               <span className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{gapCount}</span>
             </p>
@@ -150,7 +147,7 @@ export default function GapsPage() {
 
         <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-5 flex items-center gap-5 shadow-xl">
           <div className="min-w-0">
-            <p className="text-sm font-mono text-[#8f8f8d]">Predicted Scenarios</p>
+            <p className="text-sm font-mono text-[#8f8f8d]">Predicted scenarios</p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap">
               <span className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{predictedCount}</span>
             </p>
@@ -164,12 +161,11 @@ export default function GapsPage() {
         <div className="flex items-center gap-2 mb-1">
           <Plus className="h-4 w-4 text-red-400" />
           <h2 className="text-sm font-mono font-medium text-[#f3f3f1]">
-            Invent a new dangerous path
+            Invent a path
           </h2>
         </div>
         <p className="text-xs font-mono text-[#8f8f8d] mb-4">
-          Any state + action. The world model predicts it, the sandbox runs the real agent against it,
-          and a failure becomes a protected eval. Try e.g. state <code className="text-zinc-300">bad_deployment_identified</code> + action <code className="text-zinc-300">partial_json</code>.
+          Any state + action. The world model predicts it, the sandbox runs the real agent, and a failed rule becomes a protected eval. Example: <code className="text-zinc-300">bad_deployment_identified</code> + <code className="text-zinc-300">partial_json</code>.
         </p>
         <div className="flex flex-col sm:flex-row gap-2.5">
           <input
@@ -191,12 +187,13 @@ export default function GapsPage() {
             className="bg-red-500 hover:bg-red-600 text-white font-mono text-xs px-4 h-9"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <FlaskConical className="h-3.5 w-3.5 mr-1.5" />}
-            Predict + Run Sandbox
+            Predict + run sandbox
           </Button>
         </div>
         {flowError && (
           <p className="mt-3 text-xs font-mono text-red-400">
-            {flowError} — <button className="underline" onClick={() => { setFlowError(null); refetch(); }}>retry</button>
+            {flowError}{" "}
+            <button className="underline" onClick={() => { setFlowError(null); refetch(); }}>retry</button>
           </p>
         )}
       </div>
@@ -204,19 +201,19 @@ export default function GapsPage() {
       {!gaps || gaps.length === 0 ? (
         <EmptyState
           icon={<Search className="h-10 w-10 text-[#8f8f8d]" />}
-          title="No unexplored paths found"
-          description="All reachable state-action pairs have been observed. Seed more traces or invent a custom path above to discover new ones."
+          title="No gaps yet"
+          description="All reachable state-action pairs have been observed. Seed more traces or invent a path above."
         />
       ) : (
       <div className="rounded-2xl border border-dashed border-[#2a2a28] bg-[#141413] overflow-hidden shadow-xl">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#2a2a28] bg-[#0c0c0b]">
-              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Unobserved State</th>
-              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Untried Action</th>
-              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Dangerous Path Highlight</th>
-              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Support Traces</th>
-              <th className="px-5 py-3.5 text-right text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Sandbox Test</th>
+              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">State</th>
+              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Action</th>
+              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Risk note</th>
+              <th className="px-5 py-3.5 text-left text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Support traces</th>
+              <th className="px-5 py-3.5 text-right text-[11px] font-mono font-medium text-[#8f8f8d] uppercase tracking-wider">Sandbox</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#1f1f1d]">

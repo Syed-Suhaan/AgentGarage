@@ -51,7 +51,7 @@ export function GraphLegend() {
               <polygon points="16,0 24,3 16,6" fill="#f59e0b" />
             </svg>
           </div>
-          <span className="text-amber-400">Protected regression path</span>
+          <span className="text-amber-400">Protected path</span>
         </div>
 
         <div className="my-2 border-t border-[#1f1f1d]" />

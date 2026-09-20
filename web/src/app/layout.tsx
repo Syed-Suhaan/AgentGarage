@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "AgentGarage — Behavioural Coverage for AI Agents",
   description:
-    "Discover untested agent behaviours, verify failures in sandboxes, and build permanent regression evals.",
+    "Map which behaviours an agent has exercised, verify untested paths in sandboxes, and keep every confirmed failure as a permanent eval.",
 };
 
 export default function RootLayout({

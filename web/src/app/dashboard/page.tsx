@@ -82,12 +82,12 @@ export default function DashboardOverview() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-[#2a2a28] bg-[#141413] px-3 py-0.5 text-[11px] font-mono text-[#8f8f8d] mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#3b76ff] animate-pulse" />
-            <span>AGENT RUNTIME MONITOR</span>
+            <span>OBSERVED → PREDICTED → VERIFIED → PROTECTED</span>
             <span className="zoah-caret ml-0.5 text-[#3b76ff]" />
           </div>
-          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">System Overview</h1>
+          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Overview</h1>
           <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-            Real-time behavioural coverage, state transitions, and adversarial verification gates.
+            Behavioural coverage for the demo SRE agent: what ran, what is still untried, what failed in a sandbox, what is gated.
           </p>
         </div>
       </div>
@@ -185,9 +185,9 @@ export default function DashboardOverview() {
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-zinc-200 transition-colors">Unexplored Paths</p>
-                    <p className="text-[11px] font-mono text-red-400/90">
-                      (dangerous paths highlights)
+                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-zinc-200 transition-colors">Gaps</p>
+                    <p className="text-xs font-mono text-[#8f8f8d]">
+                      reachable paths never taken
                     </p>
                   </div>
                 </div>
@@ -206,9 +206,9 @@ export default function DashboardOverview() {
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-red-400 transition-colors">Danger Paths Test</p>
-                    <p className="text-[11px] font-mono text-[#8f8f8d]">
-                      (with sandbox)
+                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-red-400 transition-colors">Sandboxes</p>
+                    <p className="text-xs font-mono text-[#8f8f8d]">
+                      verify against the real agent
                     </p>
                   </div>
                 </div>
@@ -227,9 +227,9 @@ export default function DashboardOverview() {
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-amber-400 transition-colors">Perm Evals</p>
+                    <p className="text-sm font-medium text-[#f3f3f1] group-hover:text-amber-400 transition-colors">Evals</p>
                     <p className="text-xs font-mono text-[#8f8f8d]">
-                      {evalsData?.evals.length || 0} protected evaluations
+                      {evalsData?.evals.length || 0} protected
                     </p>
                   </div>
                 </div>
@@ -250,7 +250,7 @@ export default function DashboardOverview() {
             </span>
             <span className="text-[10px] text-emerald-400 flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Active Pipeline
+              Live
             </span>
           </CardTitle>
         </CardHeader>
@@ -259,7 +259,7 @@ export default function DashboardOverview() {
             {/* Step 1 */}
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-mono text-blue-400">
               <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-              <span>1. Production Trace</span>
+              <span>1. Observed</span>
             </div>
 
             {/* Dash connector 1 */}
@@ -273,7 +273,7 @@ export default function DashboardOverview() {
             {/* Step 2 */}
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-zinc-500/30 bg-zinc-500/10 px-3 py-2 text-xs font-mono text-zinc-300">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 opacity-60" />
-              <span>2. Unexplored Paths</span>
+              <span>2. Predicted</span>
             </div>
 
             {/* Dash connector 2 */}
@@ -287,7 +287,7 @@ export default function DashboardOverview() {
             {/* Step 3 */}
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-[#2a2a28] bg-[#181816] px-3 py-2 text-xs font-mono text-[#f3f3f1]">
               <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 opacity-60" />
-              <span>3. Danger Paths Test</span>
+              <span>3. Verified</span>
             </div>
 
             {/* Dash connector 3 */}
@@ -299,27 +299,13 @@ export default function DashboardOverview() {
             </div>
 
             {/* Step 4 */}
-            <div className="flex items-center gap-2 rounded-lg border border-dashed border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-mono text-red-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-              <span>4. Verified Failure</span>
-            </div>
-
-            {/* Dash connector 4 */}
-            <div className="hidden lg:flex items-center w-8 h-4">
-              <svg viewBox="0 0 32 8" className="w-full h-full overflow-visible" fill="none">
-                <line x1="0" y1="4" x2="26" y2="4" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="3 3" className="zoah-dash-animate" />
-                <path d="M24 1 L28 4 L24 7" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-
-            {/* Step 5 */}
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-mono text-amber-400">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              <span>5. Perm Eval</span>
+              <span>4. Protected</span>
             </div>
           </div>
           <p className="text-xs text-[#8f8f8d] mt-4 font-mono">
-            → Every verified failure automatically promotes to a regression gate in CI/CD, expanding the safety perimeter.
+            → Verified failures compile to eval files and re-run on every future agent version.
           </p>
         </CardContent>
       </Card>

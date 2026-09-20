@@ -152,7 +152,7 @@ export default function LiveGaragePage() {
           </span>
           <div className="flex items-center gap-2 rounded-full border border-dashed border-[#2a2a28] bg-[#141413] px-2.5 py-0.5 text-[11px] text-[#8f8f8d]">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-emerald-400 font-medium">Garage Online</span>
+            <span className="text-emerald-400 font-medium">Online</span>
             <span className="text-[#2a2a28]">|</span>
             <span>{LIVE_TRACE.version}</span>
             <span className="text-[#2a2a28]">|</span>
@@ -210,13 +210,13 @@ export default function LiveGaragePage() {
             </button>
             {showBell && (
               <div className="absolute right-0 top-9 z-50 w-72 rounded-xl border border-[#2a2a28] bg-[#141413] p-3 shadow-2xl font-mono text-[11px]">
-                <div className="font-bold text-white mb-2">Garage alerts</div>
+                <div className="font-bold text-white mb-2">Alerts</div>
                 <div className="space-y-2">
                   <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-2 text-red-300">
-                    FAULT DETECTED: Expected {LIVE_TRACE.expected}, got {LIVE_TRACE.emitted} at {LIVE_TRACE.errorAt}s
+                    Fault: expected {LIVE_TRACE.expected}, got {LIVE_TRACE.emitted} at {LIVE_TRACE.errorAt}s
                   </div>
                   <div className="rounded-lg border border-[#2a2a28] bg-[#0c0c0b] p-2 text-zinc-400">
-                    Eval Gate running • confidence 0.12
+                    Eval gate · confidence 0.12
                   </div>
                 </div>
               </div>

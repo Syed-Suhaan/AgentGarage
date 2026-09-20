@@ -22,10 +22,10 @@ export default function GraphPage() {
       {/* Top Status & Search Strip matching reference design */}
       <header className="flex h-11 items-center justify-between border-b border-[#2a2a28] bg-[#0c0c0b] px-4 shrink-0 text-xs font-mono">
         <div className="flex items-center gap-3">
-          <span className="text-[#8f8f8d]">/ Live Garage</span>
+          <span className="text-[#8f8f8d]">/ Behaviour Graph</span>
           <div className="flex items-center gap-2 rounded-full border border-dashed border-[#2a2a28] bg-[#141413] px-2.5 py-0.5 text-[11px] text-[#8f8f8d]">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-emerald-400 font-medium">Garage Online</span>
+            <span className="text-emerald-400 font-medium">Online</span>
             <span className="text-[#2a2a28]">|</span>
             <span>v1.8.2</span>
             <span className="text-[#2a2a28]">|</span>
@@ -72,7 +72,7 @@ export default function GraphPage() {
             Behaviour Graph
           </h1>
           <p className="text-[11px] font-mono text-[#8f8f8d]">
-            State transitions from real agent runs, with predicted paths and risk analysis.
+            States and transitions from real runs. Predicted paths stay grey until verified.
           </p>
         </div>
       </div>

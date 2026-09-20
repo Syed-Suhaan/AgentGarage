@@ -53,11 +53,12 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
   const isFail = sandbox.status === "verified_fail";
   const log = sandbox.log || [];
   const fault = sandbox.fault;
+  const sandboxIdStr = sandbox.sandbox_id;
 
   async function handlePromote() {
     setPromoteMsg(null);
     try {
-      const res = await promote.mutateAsync(sandbox.sandbox_id);
+      const res = await promote.mutateAsync(sandboxIdStr);
       setPromoteMsg(
         res.compiled ? `Promoted → ${res.eval_id}` : res.reason || "Not compiled (sandbox passed)."
       );
@@ -72,13 +73,13 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-red-500/30 bg-red-500/10 px-3 py-0.5 text-[11px] font-mono text-red-400 mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-            <span>ADVERSARIAL EXECUTION ENVIRONMENT{sandbox.runtime ? ` · ${sandbox.runtime}` : ""}</span>
+            <span>SANDBOX{sandbox.runtime ? ` · ${sandbox.runtime}` : ""}</span>
           </div>
           <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">
             Sandbox {sandbox.sandbox_id}
           </h1>
           <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-            Isolated execution environment validating real agent behaviour against injected faults.
+            Isolated run of the real agent against one injected fault.
             {sandbox.scenario_id ? ` Scenario: ${sandbox.scenario_id}.` : ""}
             {fault ? ` Fault: ${fault.tool} → ${fault.behavior}.` : ""}
           </p>
@@ -99,7 +100,7 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
         <div>
           <h2 className="text-xs font-mono uppercase text-[#8f8f8d] mb-3 flex items-center gap-2 tracking-wider">
             <FileText className="h-4 w-4 text-[#3b76ff]" />
-            Safety Invariant Results
+            Invariant results
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(sandbox.invariants).map(([key, value]) => {
@@ -153,10 +154,10 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] font-mono text-[#8f8f8d] uppercase tracking-wider">
-                      Overall Status
+                      Overall
                     </p>
                     <p className="text-2xl font-mono font-semibold text-[#f3f3f1] mt-1">
-                      {sandbox.invariants.passed ? "PASSED" : "VIOLATION"}
+                      {sandbox.invariants.passed ? "PASSED" : "FAILED"}
                     </p>
                   </div>
                   {sandbox.invariants.passed ? (
@@ -167,8 +168,8 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
                 </div>
                 <p className="text-[11px] font-mono mt-2 text-[#8f8f8d]">
                   {sandbox.invariants.passed
-                    ? "No eval compiled — passes never become gates"
-                    : "Auto-compiled to a permanent eval on failure"}
+                    ? "Passes never become eval gates"
+                    : "Failed rule compiled to a protected eval"}
                 </p>
                 {isFail && (
                   <div className="mt-3">
@@ -200,7 +201,7 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
       <div>
         <h2 className="text-xs font-mono uppercase text-[#8f8f8d] mb-3 flex items-center gap-2 tracking-wider">
           <Terminal className="h-4 w-4 text-[#3b76ff]" />
-          Execution Log Output
+          Execution log
         </h2>
         <Card className="border border-dashed border-[#2a2a28] bg-[#141413] overflow-hidden">
           <CardContent className="p-0">
@@ -223,7 +224,7 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
                   {">"} {isRunning ? "Running simulation..." : "No spans recorded."}
                 </p>
               ) : (
-                log.map((sp, i) => spanLine(sp as Record<string, unknown>, i))
+                log.map((sp, i) => spanLine(sp as unknown as Record<string, unknown>, i))
               )}
               <p className="text-zinc-600">{">"} ──────────────────────────────────────</p>
               {sandbox.invariants && !sandbox.invariants.passed && (

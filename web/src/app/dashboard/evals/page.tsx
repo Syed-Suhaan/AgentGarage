@@ -51,11 +51,11 @@ export default function EvalsPage() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-amber-500/30 bg-amber-500/10 px-3 py-0.5 text-[11px] font-mono text-amber-400 mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span>PHASE 4 — PERM EVALS</span>
+            <span>PROTECTED</span>
           </div>
-          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Perm Evals</h1>
+          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Evals</h1>
           <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-            Permanent evaluation gates converted from verified failure paths into regression barriers with zero false positives.
+            Verified failures saved as YAML eval files. Re-run them against any agent version.
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -114,7 +114,7 @@ export default function EvalsPage() {
                 }
                 className="font-mono text-xs"
               >
-                {runResult.failed === 0 ? "ALL PASS" : "FAILURES DETECTED"}
+                {runResult.failed === 0 ? "ALL PASS" : "FAILURES"}
               </Badge>
             </div>
           </CardContent>
@@ -122,6 +122,17 @@ export default function EvalsPage() {
       )}
 
       {/* Eval cards */}
+      {evals.length === 0 ? (
+        <Card className="border border-dashed border-[#2a2a28] bg-[#141413]">
+          <CardContent className="p-8 text-center">
+            <ShieldCheck className="h-8 w-8 text-[#8f8f8d] mx-auto mb-3" />
+            <p className="text-sm font-mono text-[#f3f3f1]">No protected evals yet</p>
+            <p className="text-xs font-mono text-[#8f8f8d] mt-1">
+              Run a sandbox from Gaps. A verified failure compiles to an eval file here.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
       <div className="space-y-4">
         {evals.map((ev: Eval) => (
           <Card key={ev.id} className="border border-dashed border-[#2a2a28] bg-[#141413] hover:border-amber-500/40 transition-all">
@@ -138,7 +149,7 @@ export default function EvalsPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <h4 className="text-xs font-mono text-[#8f8f8d] uppercase mb-2">
-                    Fault Injection
+                    Fault
                   </h4>
                   <code className="text-xs font-mono text-red-400 bg-[#0b0b0a] border border-[#1f1f1d] px-2.5 py-1 rounded block">
                     {ev.fault.tool} → {ev.fault.behavior}
@@ -178,25 +189,32 @@ export default function EvalsPage() {
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                   Pass / Fail History
                 </h4>
-                <div className="flex items-center gap-1.5">
-                  {["pass", "pass", "fail", "pass"].map((h, i) => (
-                    <span
-                      key={i}
-                      title={`v1.8.${i} — ${h}`}
-                      className={`h-2.5 w-8 rounded-sm ${
-                        h === "pass" ? "bg-green-500/70" : "bg-red-500/80"
-                      }`}
-                    />
-                  ))}
-                  <span className="ml-2 text-[11px] text-muted-foreground">
-                    v1.8.0 → v1.8.3 · hover for version
-                  </span>
-                </div>
+                {(ev.history || []).length === 0 ? (
+                  <p className="text-[11px] font-mono text-[#8f8f8d]">
+                    No runs yet. Use Run Evals above to test this gate against an agent version.
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {(ev.history || []).map((h, i) => (
+                      <span
+                        key={i}
+                        title={`${h.agent_version} — ${h.passed ? "pass" : "fail"}`}
+                        className={`h-2.5 w-8 rounded-sm ${
+                          h.passed ? "bg-green-500/70" : "bg-red-500/80"
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-2 text-[11px] text-muted-foreground">
+                      {(ev.history || []).map((h) => h.agent_version).join(" → ")} · hover for version
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 }

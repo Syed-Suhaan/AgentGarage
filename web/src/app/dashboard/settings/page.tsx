@@ -17,11 +17,11 @@ export default function SettingsPage() {
       <div>
         <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-[#2a2a28] bg-[#141413] px-3 py-0.5 text-[11px] font-mono text-[#8f8f8d] mb-2">
           <span className="h-1.5 w-1.5 rounded-full bg-[#3b76ff] animate-pulse" />
-          <span>CONFIG & CONTROLS</span>
+          <span>SETTINGS</span>
         </div>
-        <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">System Settings</h1>
+        <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">Settings</h1>
         <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-          Agent runtime configuration, model access endpoints, and data perimeter retention controls.
+          Agent registry, BYOK model endpoint, and retention.
         </p>
       </div>
 
@@ -30,10 +30,10 @@ export default function SettingsPage() {
         <CardHeader className="border-b border-[#1f1f1d]">
           <CardTitle className="text-sm font-mono flex items-center gap-2 text-[#f3f3f1]">
             <Settings className="h-4 w-4 text-[#3b76ff]" />
-            Agent Runtime Configuration
+            Agent
           </CardTitle>
           <CardDescription className="text-xs font-mono text-[#8f8f8d]">
-            Connected agent metadata and telemetry collector endpoint.
+            Registered agent and OTLP collector endpoint.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
@@ -79,16 +79,16 @@ export default function SettingsPage() {
         <CardHeader className="border-b border-[#1f1f1d]">
           <CardTitle className="text-sm font-mono flex items-center gap-2 text-[#f3f3f1]">
             <Key className="h-4 w-4 text-[#3b76ff]" />
-            Model Configuration (BYOK)
+            Model (BYOK)
           </CardTitle>
           <CardDescription className="text-xs font-mono text-[#8f8f8d]">
-            Bring your own model key for adversarial simulation. Default uses Bedrock in-region.
+            Optional custom model endpoint. Default is Bedrock in-region for world-model proposals.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div>
             <label className="text-xs font-mono uppercase text-[#8f8f8d]">
-              Default Verification LLM
+              Default model
             </label>
             <div className="mt-1 flex items-center gap-2">
               <input
@@ -102,7 +102,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="text-xs font-mono uppercase text-[#8f8f8d]">
-              Custom LLM Endpoint (optional)
+              Custom endpoint (optional)
             </label>
             <input
               type="text"
@@ -121,7 +121,7 @@ export default function SettingsPage() {
             />
           </div>
           <Button size="sm" variant="outline" className="border-dashed border-[#2a2a28] bg-[#141413] hover:border-zinc-400 font-mono text-xs">
-            Save Model Configuration
+            Save model settings
           </Button>
         </CardContent>
       </Card>
@@ -131,17 +131,17 @@ export default function SettingsPage() {
         <CardHeader className="border-b border-[#1f1f1d]">
           <CardTitle className="text-sm font-mono flex items-center gap-2 text-[#f3f3f1]">
             <Shield className="h-4 w-4 text-[#3b76ff]" />
-            Data Isolation & Retention Policies
+            Data & retention
           </CardTitle>
           <CardDescription className="text-xs font-mono text-[#8f8f8d]">
-            Zero customer data leaves your cloud perimeter. Configure retention and redaction policies.
+            Traces stay in your account. Redaction runs before storage.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="text-xs font-mono uppercase text-[#8f8f8d]">
-                Trace Retention
+                Trace retention
               </label>
               <input
                 type="text"
@@ -151,7 +151,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="text-xs font-mono uppercase text-[#8f8f8d]">
-                Sandbox Log Retention
+                Sandbox log retention
               </label>
               <input
                 type="text"
@@ -161,7 +161,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="text-xs font-mono uppercase text-[#8f8f8d]">
-                Eval Regression Gate
+                Eval files
               </label>
               <input
                 type="text"
@@ -174,8 +174,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/5 border border-dashed border-amber-500/30">
             <Database className="h-4 w-4 text-amber-400 shrink-0" />
             <p className="text-xs font-mono text-[#8f8f8d]">
-              Evals are permanent by design — they establish the agent&apos;s regression safety
-              perimeter and cannot be silently degraded or deleted through the UI.
+              Eval files are permanent. The UI cannot delete or silently weaken them.
             </p>
           </div>
         </CardContent>

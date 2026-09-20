@@ -19,34 +19,18 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   href: string;
   label: string;
-  sublabel?: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
 }
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Overview", icon: BarChart3, exact: true },
-  {
-    href: "/dashboard/live",
-    label: "Live Garage",
-    sublabel: "(sprite agent bay)",
-    icon: Bot,
-  },
+  { href: "/dashboard/live", label: "Live Garage", icon: Bot },
   { href: "/dashboard/graph", label: "Behaviour Graph", icon: GitBranch },
   { href: "/dashboard/traces", label: "Traces", icon: Activity },
-  {
-    href: "/dashboard/gaps",
-    label: "Unexplored Paths",
-    sublabel: "(dangerous paths highlights)",
-    icon: Search,
-  },
-  {
-    href: "/dashboard/sandboxes",
-    label: "Danger Paths Test",
-    sublabel: "(with sandbox)",
-    icon: Terminal,
-  },
-  { href: "/dashboard/evals", label: "Perm Evals", icon: ShieldCheck },
+  { href: "/dashboard/gaps", label: "Gaps", icon: Search },
+  { href: "/dashboard/sandboxes", label: "Sandboxes", icon: Terminal },
+  { href: "/dashboard/evals", label: "Evals", icon: ShieldCheck },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -82,7 +66,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              title={`${item.label}${item.sublabel ? ` ${item.sublabel}` : ""}`}
+              title={item.label}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 group/nav",
                 isActive
@@ -98,16 +82,6 @@ export function Sidebar() {
               />
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="truncate leading-tight text-xs font-medium">{item.label}</span>
-                {item.sublabel && (
-                  <span
-                    className={cn(
-                      "text-[10px] font-mono truncate leading-tight mt-0.5 tracking-tight",
-                      isActive ? "text-[#3b76ff]/90" : "text-[#8f8f8d]/80 group-hover/nav:text-[#8f8f8d]"
-                    )}
-                  >
-                    {item.sublabel}
-                  </span>
-                )}
               </div>
               {isActive && (
                 <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#3b76ff] animate-pulse" />
@@ -125,7 +99,7 @@ export function Sidebar() {
         >
           <div className="flex items-center gap-2">
             <FlaskConical className="h-3.5 w-3.5" />
-            <span>Interactive Demo</span>
+            <span>Demo walkthrough</span>
           </div>
           <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
         </Link>

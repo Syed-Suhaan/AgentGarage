@@ -54,16 +54,13 @@ export default function SandboxesPage() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-red-500/30 bg-red-500/10 px-3 py-0.5 text-[11px] font-mono text-red-400 mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-            <span>PHASE 3 — DANGER PATHS VERIFICATION</span>
+            <span>VERIFIED</span>
           </div>
-          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight flex items-baseline gap-2.5 flex-wrap">
-            <span>Danger Paths Test</span>
-            <span className="text-sm font-mono text-red-400 font-normal">
-              (with sandbox)
-            </span>
+          <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">
+            Sandboxes
           </h1>
           <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-            Isolated sandboxes running synthetic fault injections to empirically verify dangerous agent execution paths.
+            One microVM per scenario: restore state, inject one fault, run the real agent, check fixed rules.
           </p>
         </div>
 
@@ -79,7 +76,7 @@ export default function SandboxesPage() {
             )}
           >
             <Terminal className="h-3.5 w-3.5 text-red-400" />
-            <span>Active Sandboxes ({sandboxes.length})</span>
+            <span>Runs ({sandboxes.length})</span>
           </button>
           <button
             onClick={() => setActiveTab("scenarios")}
@@ -91,7 +88,7 @@ export default function SandboxesPage() {
             )}
           >
             <FlaskConical className="h-3.5 w-3.5 text-amber-400" />
-            <span>Danger Scenarios ({scenarios.length})</span>
+            <span>Scenarios ({scenarios.length})</span>
           </button>
         </div>
       </div>
@@ -110,7 +107,7 @@ export default function SandboxesPage() {
             <EmptyState
               icon={<Terminal className="h-10 w-10 text-[#8f8f8d]" />}
               title="No sandbox runs yet"
-              description="Invent a path on the Gaps page or pick a scenario below and run it — results appear here with invariant verdicts."
+              description="Invent a path on Gaps or pick a scenario below. Results show invariant verdicts here."
             />
           ) : (
             sandboxes.map((sb) => (
@@ -153,7 +150,7 @@ export default function SandboxesPage() {
           )}
 
           <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#0b0b0a] p-4 text-xs font-mono text-[#8f8f8d] flex items-center justify-between">
-            <span>→ Sandboxes isolate runtime state, execute fault payloads against the real agent, and assert safety invariants.</span>
+            <span>→ Restore state, inject one fault, run the real agent, assert invariants in code.</span>
             <Button
               size="sm"
               variant="outline"
@@ -161,7 +158,7 @@ export default function SandboxesPage() {
               className="border-dashed border-[#2a2a28] bg-[#141413] hover:border-red-500/50 hover:bg-[#181816] text-xs font-mono text-red-400 shrink-0"
             >
               <Play className="h-3.5 w-3.5 mr-1.5" />
-              Launch New Danger Path Test
+              Run a scenario
             </Button>
           </div>
         </div>
@@ -171,7 +168,7 @@ export default function SandboxesPage() {
             <EmptyState
               icon={<FlaskConical className="h-10 w-10 text-[#8f8f8d]" />}
               title="No predicted scenarios yet"
-              description="Go to Unexplored Paths and invent one — the world model will predict it here, ranked by risk."
+              description="Go to Gaps and invent a path. The world model prediction lands here, ranked by risk."
             />
           ) : (
             <>
@@ -203,7 +200,7 @@ export default function SandboxesPage() {
                     <CardContent className="p-5">
                       <p className="text-xs font-mono text-[#8f8f8d] mb-3 leading-relaxed">{s.hypothesis}</p>
                       <div className="flex items-center gap-2 text-xs font-mono">
-                        <span className="text-[#8f8f8d]">Injected Fault:</span>
+                        <span className="text-[#8f8f8d]">Fault:</span>
                         <code className="rounded border border-dashed border-red-500/40 bg-red-500/10 px-2 py-0.5 text-red-400">
                           {s.fault.tool} → {s.fault.behavior}
                         </code>
@@ -219,10 +216,10 @@ export default function SandboxesPage() {
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div>
                         <CardTitle className="text-base font-mono text-[#f3f3f1]">
-                          Danger Path Test Configuration: {selectedScenario.scenario_id}
+                          Scenario {selectedScenario.scenario_id}
                         </CardTitle>
                         <p className="text-xs font-mono text-[#8f8f8d] mt-0.5">
-                          Target State: {selectedScenario.unexplored_state} · Action: {selectedScenario.untried_action}
+                          State: {selectedScenario.unexplored_state} · Action: {selectedScenario.untried_action}
                         </p>
                       </div>
                       <Button
@@ -236,23 +233,23 @@ export default function SandboxesPage() {
                         ) : (
                           <Play className="h-3.5 w-3.5 mr-1.5" />
                         )}
-                        {startSandbox.isPending ? "Executing Sandbox..." : "Run Sandbox Verification"}
+                        {startSandbox.isPending ? "Running…" : "Run sandbox"}
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
                     <div>
-                      <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">Failure Hypothesis</h4>
+                      <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">Hypothesis</h4>
                       <p className="text-sm font-mono text-[#f3f3f1] bg-[#0b0b0a] border border-[#1f1f1d] p-3 rounded-lg">
                         {selectedScenario.hypothesis}
                       </p>
                     </div>
                     <div>
-                      <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">Fault Injection Configuration</h4>
+                      <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">Fault</h4>
                       <JsonViewer data={selectedScenario.fault} />
                     </div>
                     <div>
-                      <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">Initial State Variables</h4>
+                      <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">Initial state</h4>
                       <JsonViewer data={selectedScenario.initial_state} />
                     </div>
                   </CardContent>

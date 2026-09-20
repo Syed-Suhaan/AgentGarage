@@ -10,9 +10,9 @@ const NAV = [
   {
     label: "Platform",
     items: [
-      { name: "Behaviour graph", href: "/dashboard/graph" },
-      { name: "Gap detector", href: "/dashboard/gaps" },
-      { name: "Sandbox", href: "/dashboard/sandboxes" },
+      { name: "Behaviour Graph", href: "/dashboard/graph" },
+      { name: "Gaps", href: "/dashboard/gaps" },
+      { name: "Sandboxes", href: "/dashboard/sandboxes" },
       { name: "Evals", href: "/dashboard/evals" },
     ],
   },
@@ -28,7 +28,7 @@ const NAV = [
   {
     label: "Docs",
     items: [
-      { name: "Architecture", href: "/dashboard" },
+      { name: "Overview", href: "/dashboard" },
       { name: "Demo", href: "/demo" },
       { name: "Settings", href: "/dashboard/settings" },
     ],
@@ -39,7 +39,7 @@ const PHASES = [
   {
     kicker: "Observed",
     title: "Map every path your agent\nactually took.",
-    desc: "Production traces become a time-versioned graph of states, decisions and outcomes.",
+    desc: "Production traces become a time-versioned graph of states, decisions, and outcomes.",
     detail: "5 states · 5 edges · tr_84f2",
     palette: "ink" as const,
   },
@@ -53,24 +53,24 @@ const PHASES = [
   {
     kicker: "Verified",
     title: "Replay hypotheses\nagainst the real agent.",
-    desc: "One isolated sandbox per scenario. Fixed rule checks move predicted to verified — never a model’s word.",
+    desc: "One isolated sandbox per scenario. Fixed rule checks move predicted to verified. Never a model's word.",
     detail: "sb_07 · rollback_count = 2 · FAIL",
     palette: "blue" as const,
   },
   {
     kicker: "Protected",
     title: "Keep every failure\nas a permanent eval.",
-    desc: "Verified failures compile to portable YAML evals re-run on every future version.",
+    desc: "Verified failures compile to YAML evals re-run on every future agent version.",
     detail: "eval_double_rollback · protected",
     palette: "sun" as const,
   },
 ];
 
 const PILLARS = [
-  { k: "Observe", t: "Production-grounded map, not a trace viewer.", d: "States and edges with counts, versions and sources." },
-  { k: "Hypothesize", t: "World-model proposals, explicitly unconfirmed.", d: "Predicted stays grey until the sandbox reproduces it." },
+  { k: "Observe", t: "A production-grounded map.", d: "States and edges with counts, versions, and sources." },
+  { k: "Hypothesize", t: "World-model proposals stay unconfirmed.", d: "Predicted stays grey until the sandbox reproduces it." },
   { k: "Isolate", t: "AgentCore microVM sandboxes with no internet.", d: "Restore state, inject one fault, run the same agent." },
-  { k: "Enforce", t: "Evals that block silent regressions.", d: "Assert-first checks like rollback_count <= 1." },
+  { k: "Enforce", t: "Evals that catch silent regressions.", d: "Assert-first checks like rollback_count <= 1." },
 ];
 
 function PhaseSection({ p, index }: { p: (typeof PHASES)[number]; index: number }) {
@@ -248,9 +248,9 @@ export default function LandingPage() {
           for AI agents.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-          Agents don’t follow scripts — they choose tools, retry, and branch on what they observe.
-          AgentGarage maps which behaviours were exercised, predicts untested paths, verifies them
-          in isolation, and keeps every failure as a permanent eval.
+          Agents choose tools, retry, and branch on what they observe. AgentGarage maps which
+          behaviours were exercised, finds reachable paths never taken, verifies them against the
+          real agent in isolation, and keeps every confirmed failure as a permanent eval.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Link
@@ -280,7 +280,7 @@ export default function LandingPage() {
 
       {/* Trust strip */}
       <section className="border-b border-white/5 py-14">
-        <p className="text-center text-xs text-zinc-500">Runs inside your AWS account — same primitives you already trust</p>
+        <p className="text-center text-xs text-zinc-500">Runs inside your AWS account on the same primitives you already use</p>
         <div className="mx-auto mt-6 flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-medium text-zinc-500">
           {["S3", "DynamoDB", "Neptune", "AgentCore", "Step Functions", "Bedrock", "CDK", "Next.js"].map((t) => (
             <span key={t} className="hover:text-zinc-300 transition-colors">{t}</span>
@@ -290,9 +290,9 @@ export default function LandingPage() {
 
       {/* Pillars */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
-        <h2 className="text-3xl font-medium tracking-tight sm:text-5xl text-white">Built for agent reliability.</h2>
+        <h2 className="text-3xl font-medium tracking-tight sm:text-5xl text-white">How coverage works.</h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-          Coverage, not just observability. Every verified failure permanently expands the agent’s safety perimeter.
+          A predicted failure is a hypothesis until the real agent reproduces it. Only a failed rule check becomes an eval.
         </p>
         <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
           {PILLARS.map((c) => (
@@ -309,21 +309,21 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <div className="grid gap-8 md:grid-cols-2 items-center">
           <div>
-            <p className="text-xs text-zinc-500">Judge proof · live</p>
+            <p className="text-xs text-zinc-500">Demo run · checkout rollback</p>
             <p className="mt-2 font-mono text-5xl font-medium text-white">2</p>
             <p className="text-sm text-zinc-500">rollbacks on the timeout path</p>
             <p className="mt-6 font-mono text-5xl font-medium text-white">1</p>
-            <p className="text-sm text-zinc-500">permanent eval written</p>
+            <p className="text-sm text-zinc-500">protected eval written</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-[#111] shadow-2xl overflow-hidden">
             <div className="flex items-center gap-2 border-b border-white/10 p-4 text-sm font-medium text-white">
-              <Terminal className="h-4 w-4 text-blue-400" /> Sandbox sb_07 — streaming
+              <Terminal className="h-4 w-4 text-blue-400" /> Sandbox sb_07 · streaming
             </div>
             <div className="space-y-2 p-4 font-mono text-xs leading-relaxed bg-[#0c0c0b]">
               <p className="text-zinc-500">&gt; restoring degraded checkout snapshot</p>
               <p className="text-zinc-400">&gt; injecting rollback_deployment → timeout_after_success</p>
               <p className="text-blue-400">&gt; rollback_deployment → SUCCESS but TIMEOUT to agent</p>
-              <p className="text-red-400">&gt; rollback_deployment RETRY — rolled back too far</p>
+              <p className="text-red-400">&gt; rollback_deployment RETRY · rolled back too far</p>
               <p className="text-red-400">&gt; INVARIANT FAIL: rollback_count = 2 (expected ≤ 1)</p>
             </div>
             <div className="flex gap-2 border-t border-white/10 p-4 bg-[#111]">
@@ -341,15 +341,15 @@ export default function LandingPage() {
       {/* Platform grid */}
       <section className="mx-auto max-w-6xl px-4 pb-20">
         <p className="text-xs text-zinc-500">The platform</p>
-        <h2 className="mt-2 text-3xl font-medium tracking-tight sm:text-5xl text-white">Everything in one place.</h2>
+        <h2 className="mt-2 text-3xl font-medium tracking-tight sm:text-5xl text-white">From graph to gate.</h2>
         <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 md:grid-cols-3">
           {[
-            { icon: Eye, t: "Behaviour graph", d: "States, decisions and outcomes with live counts.", href: "/dashboard/graph" },
-            { icon: FlaskConical, t: "Gap detector", d: "Unexplored state-action pairs ranked by risk.", href: "/dashboard/gaps" },
-            { icon: Terminal, t: "Sandbox", d: "Isolated replay with streaming logs.", href: "/dashboard/sandboxes" },
-            { icon: ShieldCheck, t: "Evals", d: "Portable regression files with history.", href: "/dashboard/evals" },
+            { icon: Eye, t: "Behaviour Graph", d: "States, decisions, and outcomes with live counts.", href: "/dashboard/graph" },
+            { icon: FlaskConical, t: "Gaps", d: "Untried state-action pairs ranked by risk.", href: "/dashboard/gaps" },
+            { icon: Terminal, t: "Sandboxes", d: "Isolated replay with streaming logs.", href: "/dashboard/sandboxes" },
+            { icon: ShieldCheck, t: "Evals", d: "YAML regression files with pass/fail history.", href: "/dashboard/evals" },
             { icon: Zap, t: "Demo", d: "Seed → graph → gap → sandbox → protect.", href: "/demo" },
-            { icon: ArrowRight, t: "Overview", d: "Coverage gauge and core loop in one view.", href: "/dashboard" },
+            { icon: ArrowRight, t: "Overview", d: "Coverage gauge and the four-status loop.", href: "/dashboard" },
           ].map((c) => (
             <div key={c.t} className="bg-[#0e0e0e] p-6 hover:bg-[#121211] transition-colors">
               <c.icon className="h-5 w-5 text-zinc-400" />
@@ -366,7 +366,7 @@ export default function LandingPage() {
       {/* CTA + footer */}
       <section className="border-t border-white/5 px-4 py-20 text-center">
         <h2 className="text-3xl font-medium tracking-tight sm:text-5xl text-white">Start mapping your agent.</h2>
-        <p className="mt-3 text-sm text-zinc-400">From production trace to permanent protection.</p>
+        <p className="mt-3 text-sm text-zinc-400">From production trace to protected eval.</p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <Link href="/dashboard" className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-6 py-3 text-sm font-medium text-zinc-900 hover:bg-white transition-all shadow-md">
             Open dashboard <ArrowRight className="h-4 w-4" />
@@ -375,7 +375,7 @@ export default function LandingPage() {
         <footer className="mx-auto mt-16 grid max-w-6xl gap-8 border-t border-white/5 pt-10 text-left md:grid-cols-4">
           <div>
             <p className="text-sm font-semibold text-white">AgentGarage</p>
-            <p className="mt-2 text-xs leading-relaxed text-zinc-500">Private behavioural assurance for AI agents. Deploys in your AWS account.</p>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-500">Behavioural coverage for AI agents. Deploys in your AWS account.</p>
           </div>
           <div>
             <p className="text-xs font-medium text-zinc-400">Product</p>
@@ -395,7 +395,7 @@ export default function LandingPage() {
           </div>
           <div>
             <p className="text-xs font-medium text-zinc-400">Trust</p>
-            <p className="mt-2 text-xs leading-relaxed text-zinc-500">Predicted is hypothesis until the real agent reproduces it. No path is marked failed on a model’s word.</p>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-500">Predicted is a hypothesis until the real agent reproduces it. No path is marked failed on a model&apos;s word.</p>
           </div>
         </footer>
       </section>

@@ -37,13 +37,13 @@ export interface WorkflowStage {
 export const WORKFLOW_STAGES: WorkflowStage[] = [
   {
     id: "dispatch",
-    bay: "Dispatch Station",
+    bay: "Dispatch",
     code: "BAY_01",
     label: "dispatch",
     start: 0,
     end: 6.0,
-    action: "LLM intake + NLU parse",
-    detail: "Initial task intake & NLU parser. Dispatched task 'diagnose_vehicle'.",
+    action: "intake parse",
+    detail: "Dispatched diagnose_vehicle.",
   },
   {
     id: "verify",
@@ -53,7 +53,7 @@ export const WORKFLOW_STAGES: WorkflowStage[] = [
     start: 6.0,
     end: 13.0,
     action: "tool: read_obd link",
-    detail: "Hydraulic hoist station. OBD-II communication protocol verified on Sedan #42.",
+    detail: "OBD-II link verified on Sedan #42.",
   },
   {
     id: "tool_bench",
@@ -63,7 +63,7 @@ export const WORKFLOW_STAGES: WorkflowStage[] = [
     start: 13.0,
     end: 22.0,
     action: "tool: read_obd exec",
-    detail: "Diagnostic instrumentation bench. read_obd tool executed to poll DTC registers.",
+    detail: "read_obd polled DTC registers.",
   },
   {
     id: "eval_gate",
@@ -73,7 +73,7 @@ export const WORKFLOW_STAGES: WorkflowStage[] = [
     start: 22.0,
     end: 29.0,
     action: "eval gate running",
-    detail: "Automated regression verification gate. Checkpoint score: 0.12 (FAIL against benchmark P0420).",
+    detail: "Checkpoint score 0.12. FAIL against P0420.",
   },
   {
     id: "sandbox_bay",
@@ -82,8 +82,8 @@ export const WORKFLOW_STAGES: WorkflowStage[] = [
     label: "sandbox",
     start: 29.0,
     end: 37.4,
-    action: "fault containment",
-    detail: "Isolated fault containment chamber. Injected synthetic sensor delay; agent suggested wrong code.",
+    action: "sandbox replay",
+    detail: "Injected sensor delay. Agent returned the wrong code.",
   },
 ];
 
@@ -169,9 +169,9 @@ export function getBotPosAt(t: number): {
 /* Timeline tracks – same times as backend spans, consumed by ReplayTimeline */
 export const TIMELINE_TRACKS = {
   llm: [
-    { start: 0.5, end: 6.5, label: "LLM Call: Initial Prompt & Plan" },
-    { start: 14.5, end: 20.0, label: "LLM Call: Tool Result Synthesis" },
-    { start: 31.0, end: 34.0, label: "LLM Call: Final Diagnostic Emission" },
+    { start: 0.5, end: 6.5, label: "LLM: plan" },
+    { start: 14.5, end: 20.0, label: "LLM: tool result" },
+    { start: 31.0, end: 34.0, label: "LLM: verdict" },
   ],
   tools: [
     { start: 4.0, end: 13.0, label: "Tool: read_obd" },
@@ -180,14 +180,14 @@ export const TIMELINE_TRACKS = {
     { start: 33.5, end: 34.5, label: "Tool: close_session" },
   ],
   env: [
-    { start: 2.5, end: 4.0, label: "Environment: Container spin up" },
-    { start: 16.0, end: 18.5, label: "Environment: OBD II CAN bus connected" },
-    { start: 21.0, end: 23.0, label: "Environment: Injected simulated sensor lag" },
-    { start: 30.2, end: 37.4, label: "Error / Failure: Expected P0420, got P0136", error: true },
+    { start: 2.5, end: 4.0, label: "Env: container up" },
+    { start: 16.0, end: 18.5, label: "Env: OBD-II connected" },
+    { start: 21.0, end: 23.0, label: "Env: injected sensor lag" },
+    { start: 30.2, end: 37.4, label: "Fail: expected P0420, got P0136", error: true },
   ],
   eval: [
-    { start: 4.5, end: 7.0, label: "Evaluation Gate: Preconditions validated" },
-    { start: 16.5, end: 20.0, label: "Evaluation Gate: Protocol safety checks" },
-    { start: 35.0, end: 37.4, label: "Evaluation Gate: FAIL (DTC mismatch)", error: true },
+    { start: 4.5, end: 7.0, label: "Eval: preconditions" },
+    { start: 16.5, end: 20.0, label: "Eval: protocol checks" },
+    { start: 35.0, end: 37.4, label: "Eval: FAIL (DTC mismatch)", error: true },
   ],
 } as const;

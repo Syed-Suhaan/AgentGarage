@@ -56,13 +56,13 @@ export default function ScenariosPage() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-dashed border-red-500/40 bg-red-500/10 px-3 py-0.5 text-[11px] font-mono text-red-400 mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-            <span>PHASE 3 — DANGER PATHS TEST</span>
+            <span>PREDICTED</span>
           </div>
           <h1 className="text-2xl font-normal text-[#f3f3f1] tracking-tight">
-            Danger Scenarios
+            Scenarios
           </h1>
           <p className="text-xs sm:text-sm text-[#8f8f8d] mt-1">
-            World model predicts · Jev ranks by risk · sandbox verifies highest first.
+            World model predicts. Ranker scores by risk. Sandbox verifies highest first.
           </p>
         </div>
         <Link href="/dashboard/sandboxes">
@@ -71,7 +71,7 @@ export default function ScenariosPage() {
             variant="outline"
             className="border-dashed border-red-500/30 bg-red-500/10 hover:border-red-500 text-red-400 text-xs font-mono"
           >
-            Open Danger Paths Test (with sandbox) →
+            Open sandboxes →
           </Button>
         </Link>
       </div>
@@ -86,7 +86,7 @@ export default function ScenariosPage() {
         <EmptyState
           icon={<FlaskConical className="h-10 w-10 text-[#8f8f8d]" />}
           title="No predicted scenarios yet"
-          description="Invent a dangerous path on the Unexplored Paths page — the world model prediction will land here, ranked by risk."
+          description="Invent a path on Gaps. The world-model prediction lands here, ranked by risk."
         />
       ) : (
         <>
@@ -118,7 +118,7 @@ export default function ScenariosPage() {
                     {s.hypothesis}
                   </p>
                   <div className="flex items-center gap-2 text-xs font-mono">
-                    <span className="text-[#8f8f8d]">Injected Fault:</span>
+                    <span className="text-[#8f8f8d]">Fault:</span>
                     <code className="rounded border border-dashed border-red-500/40 bg-red-500/10 px-2 py-0.5 text-red-400">
                       {s.fault.tool} → {s.fault.behavior}
                     </code>
@@ -133,7 +133,7 @@ export default function ScenariosPage() {
               <CardHeader className="border-b border-[#1f1f1d]">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-mono text-[#f3f3f1]">
-                    Scenario Detail: {active.scenario_id}
+                    Scenario {active.scenario_id}
                     {active.risk_score != null
                       ? ` · ${riskLabel(active.risk_score)} (${active.rank_source || "rank"})`
                       : ""}
@@ -149,14 +149,14 @@ export default function ScenariosPage() {
                     ) : (
                       <Play className="h-3.5 w-3.5 mr-1.5" />
                     )}
-                    Launch Sandbox Verification
+                    Run sandbox
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
                 <div>
                   <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">
-                    Failure Hypothesis
+                    Hypothesis
                   </h4>
                   <p className="text-sm font-mono text-[#f3f3f1] bg-[#0b0b0a] border border-[#1f1f1d] p-3 rounded-lg">
                     {active.hypothesis}
@@ -164,13 +164,13 @@ export default function ScenariosPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">
-                    Fault Injection Configuration
+                    Fault
                   </h4>
                   <JsonViewer data={active.fault} />
                 </div>
                 <div>
                   <h4 className="text-xs font-mono uppercase text-[#8f8f8d] mb-2 tracking-wider">
-                    Initial State Variables
+                    Initial state
                   </h4>
                   <JsonViewer data={active.initial_state} />
                 </div>
