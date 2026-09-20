@@ -177,6 +177,10 @@ Resources:
                 - bedrock:InvokeModelWithResponseStream
                 - bedrock:Converse
               Resource: "*"
+        # Lets the demo API fire-and-forget async self-invocations for long
+        # sandbox/seed worker runs (API Gateway answers after 30s).
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ApiFunction
       Events:
         Proxy:
           Type: HttpApi

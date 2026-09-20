@@ -225,7 +225,16 @@ def put_sandbox_log(rec):
             Body=json.dumps(slim).encode(),
             ContentType="application/json",
         )
-    put_job(rec)
+    # DDB items cap at 400KB but the full span log already lives in S3.
+    # Keep the newest spans inline so pathological retry loops can't blow
+    # up the jobs table write (and the dashboard shows the tail that
+    # mattered for the verdict).
+    ddb_rec = dict(rec)
+    log = ddb_rec.get("log") or []
+    if len(log) > 50:
+        ddb_rec["log"] = log[-50:]
+        ddb_rec["log_truncated"] = True
+    put_job(ddb_rec)
     return rec
 
 

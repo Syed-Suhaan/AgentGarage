@@ -118,7 +118,7 @@ def run(
             "Restore checkout safely. Inspect health, logs, and deployment history, "
             "then remediate and verify."
         )
-        result = agent(goal)
+        result = _invoke_bounded(agent, goal)
         spans = list(world.current()["spans"])
         if not spans:
             spans = _spans_from_metrics(result)
@@ -133,8 +133,39 @@ def run(
             "world": world.snapshot(),
             "agent_message": str(getattr(result, "message", "")),
         }
+    except world.LoopBudgetExceeded as e:
+        # Strands propagated the loop-budget error out of a tool call.
+        # Partial spans + world are kept and still verdict correctly.
+        spans = list(world.current()["spans"])
+        return {
+            "trace": {
+                "agent_id": agent_id,
+                "agent_version": version,
+                "prompt_hash": ph,
+                "session_id": f"s_{service}",
+                "spans": spans,
+            },
+            "world": world.snapshot(),
+            "agent_message": f"stopped: {e}",
+        }
     finally:
         world.end(token)
+
+
+def _invoke_bounded(agent, goal):
+    """Run one agent loop with a native turn cap.
+
+    The buggy prompt retries ambiguous faults forever; without a cap the
+    Strands loop outlives the sandbox Lambda (observed: 300s timeout, no
+    record written). Limits(turns=12) stops cleanly with
+    stop_reason="limit_turns" — partial spans + world still produce the
+    correct failing verdict. Clean runs use ~6 turns and never notice.
+    """
+    try:
+        from strands.types.agent import Limits
+        return agent(goal, limits=Limits(turns=12))
+    except (ImportError, TypeError):
+        return agent(goal)
 
 
 def _hash(text):

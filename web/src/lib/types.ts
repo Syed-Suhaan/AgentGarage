@@ -136,5 +136,8 @@ export interface EvalRunResult {
 
 // --- Demo ---
 export interface SeedResult {
-  traces_written: number;
+  traces_written?: number;
+  accepted?: boolean;
+  runs?: number;
+  mode?: "async" | "inline";
 }

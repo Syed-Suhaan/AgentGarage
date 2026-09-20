@@ -91,6 +91,21 @@ def snapshot():
     }
 
 
+class LoopBudgetExceeded(RuntimeError):
+    """Raised when a sandbox agent loop exceeds LOOP_BUDGET tool calls.
+
+    The buggy agent can retry forever on ambiguous faults; the budget stops
+    the loop so a Lambda sandbox always finishes. Partial spans + world are
+    kept, so invariants still render the correct (failing) verdict.
+    """
+
+
+# Worst case wall-clock per tool call is one Bedrock round-trip (~5-15s).
+# 12 calls ≈ 1-3 min, safely inside the sandbox Lambda timeout. Clean runs
+# use ~6 spans; only pathological retry loops ever hit this.
+LOOP_BUDGET = 12
+
+
 def record_span(tool, args, result, status, duration_ms):
     current()["spans"].append({
         "name": tool,
@@ -100,3 +115,5 @@ def record_span(tool, args, result, status, duration_ms):
         "status": status,
         "duration_ms": duration_ms,
     })
+    if len(current()["spans"]) >= LOOP_BUDGET:
+        raise LoopBudgetExceeded(f"sandbox loop budget hit ({LOOP_BUDGET} tool calls)")

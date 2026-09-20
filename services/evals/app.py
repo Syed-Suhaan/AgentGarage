@@ -18,6 +18,9 @@ PRIMARY_INVARIANTS = [
 def compile(sandbox):
     if not sandbox or sandbox.get("invariants", {}).get("passed"):
         return None
+    if sandbox.get("status") == "error":
+        # Infra/LLM failure, not an agent misbehavior — never a gate.
+        return None
     eid = PRIMARY_EVAL
     if (sandbox.get("fault") or {}).get("behavior") != "timeout_after_success":
         eid = f"eval_{sandbox.get('scenario_id') or sandbox['sandbox_id']}"

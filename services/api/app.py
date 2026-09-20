@@ -73,32 +73,116 @@ def next_sandbox(agent_id):
     }
 
 
+def _invoke_async(payload):
+    """Fire-and-forget self-invocation for long sandbox/seed work.
+
+    API Gateway answers after 30s, but a fail-path agent loop needs minutes.
+    An async (Event) invocation runs up to the Lambda timeout while this
+    invocation returns the sandbox/scenario id immediately; the dashboard
+    polls GET /sandboxes/{id} (already built). Returns False outside Lambda
+    (unit tests, local runs) so callers fall back to synchronous execution.
+    """
+    fn = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+    if not fn:
+        return False
+    try:
+        import boto3
+        boto3.client("lambda").invoke(
+            FunctionName=fn,
+            InvocationType="Event",
+            Payload=json.dumps(payload).encode(),
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _run_sandbox_worker(sandbox_id, scenario_id, agent_version):
+    sc = store.get_job(scenario_id)
+    if not sc:
+        return {"ok": False, "error": f"scenario {scenario_id} not found"}
+    rec = replay.run_sandbox(sandbox_id, sc, agent_version or "1.8.2")
+    compiled = evals.compile(rec)
+    return {
+        "ok": True,
+        "sandbox_id": sandbox_id,
+        "status": rec.get("status"),
+        "compiled_eval": (compiled or {}).get("id") if compiled else None,
+    }
+
+
+def _run_seed_worker(runs):
+    import uuid
+    ids = []
+    for _ in range(max(1, min(int(runs or 5), 10))):
+        result = agentcore_client.invoke_agent(
+            f"seed-{uuid.uuid4().hex[:8]}",
+            {
+                "agent_id": "sre-agent",
+                "agent": {"id": "sre-agent"},
+                "initial_state": {"service": "checkout"},
+                "fault": {},
+            },
+            "1.8.2",
+        )
+        trace = collector.ingest({
+            "agent_id": result.get("agent_id") or "sre-agent",
+            "agent_version": result.get("agent_version") or "1.8.2",
+            "spans": result["spans"],
+        })
+        try:
+            graph.index_trace(trace)
+        except Exception:
+            pass
+        ids.append(trace["trace_id"])
+    return {"traces_written": len(ids)}
+
+
 def start_sandbox(scenario_id):
     """POST /scenarios/{id}/sandbox → Step Functions → AgentCore Runtime.
 
-    Demo fallback: when STATE_MACHINE_ARN is unset (SAM team demo), run the
-    sandbox synchronously in this Lambda via the real agent + code
-    invariants, then auto-compile a protected eval on verified_fail. This is
-    what lets judges run a newly invented path end-to-end without SFN /
-    AgentCore wiring. Returns immediately with the finished status.
+    Demo fallback: when STATE_MACHINE_ARN is unset (SAM team demo), the
+    sandbox runs in this Lambda family via the real agent + code invariants,
+    then auto-compiles a protected eval on verified_fail. Long agent loops
+    outlive API Gateway's 30s response limit, so prefer an async
+    self-invocation (dashboard polls the id); fall back to inline when async
+    is unavailable (unit tests) or SFN when wired (production).
     """
     sc = store.get_job(scenario_id)
     if not sc:
         raise KeyError(scenario_id)
     arn = os.environ.get("STATE_MACHINE_ARN")
-    if not arn:
-        sid = store.nid("sb")
-        rec = replay.run_sandbox(
-            sid, sc, sc.get("agent_version") or "1.8.2",
-        )
-        compiled = evals.compile(rec)
-        return {
-            "sandbox_id": sid,
-            "status": rec.get("status"),
-            "runtime": rec.get("runtime"),
-            "compiled_eval": (compiled or {}).get("id") if compiled else None,
-            "mode": "inline",
-        }
+    if arn:
+        return _start_sandbox_sfn(arn, sc, scenario_id)
+    version = sc.get("agent_version") or "1.8.2"
+    sid = store.nid("sb")
+    store.put_job({
+        "id": sid,
+        "kind": "sandbox",
+        "sandbox_id": sid,
+        "scenario_id": scenario_id,
+        "agent_id": sc.get("agent_id"),
+        "status": "running",
+    })
+    if _invoke_async({
+        "__worker__": "sandbox",
+        "sandbox_id": sid,
+        "scenario_id": scenario_id,
+        "agent_version": version,
+    }):
+        return {"sandbox_id": sid, "status": "running", "mode": "async"}
+    rec = replay.run_sandbox(sid, sc, version)
+    compiled = evals.compile(rec)
+    return {
+        "sandbox_id": sid,
+        "status": rec.get("status"),
+        "runtime": rec.get("runtime"),
+        "compiled_eval": (compiled or {}).get("id") if compiled else None,
+        "mode": "inline",
+    }
+
+
+def _start_sandbox_sfn(arn, sc, scenario_id):
     sid = store.nid("sb")
     store.put_job({
         "id": sid,
@@ -183,34 +267,14 @@ def seed_demo(body):
 
     The SAM demo has no EventBridge graph builder, so index each trace
     synchronously here; otherwise /graph and /unexplored stay empty after
-    seeding and judges can never discover a new dangerous path.
+    seeding and judges can never discover a new dangerous path. Five agent
+    runs can outlive API Gateway's 30s limit, so prefer an async worker and
+    let the dashboard poll GET /traces.
     """
-    import uuid
-
     runs = int((body or {}).get("runs") or 5)
-    ids = []
-    for _ in range(runs):
-        result = agentcore_client.invoke_agent(
-            f"seed-{uuid.uuid4().hex[:8]}",
-            {
-                "agent_id": "sre-agent",
-                "agent": {"id": "sre-agent"},
-                "initial_state": {"service": "checkout"},
-                "fault": {},
-            },
-            "1.8.2",
-        )
-        trace = collector.ingest({
-            "agent_id": result.get("agent_id") or "sre-agent",
-            "agent_version": result.get("agent_version") or "1.8.2",
-            "spans": result["spans"],
-        })
-        try:
-            graph.index_trace(trace)
-        except Exception:
-            pass
-        ids.append(trace["trace_id"])
-    return {"traces_written": len(ids)}
+    if _invoke_async({"__worker__": "seed", "runs": runs}):
+        return {"accepted": True, "runs": runs, "mode": "async"}
+    return {**_run_seed_worker(runs), "mode": "inline"}
 
 
 def dispatch(method, path, body=None):
@@ -247,6 +311,15 @@ def dispatch(method, path, body=None):
 
 
 def lambda_handler(event, context=None):
+    # Async worker invocation (Event) from _invoke_async: no HTTP shape.
+    if isinstance(event, dict) and event.get("__worker__") == "sandbox":
+        return _run_sandbox_worker(
+            event["sandbox_id"],
+            event["scenario_id"],
+            event.get("agent_version") or "1.8.2",
+        )
+    if isinstance(event, dict) and event.get("__worker__") == "seed":
+        return _run_seed_worker(event.get("runs") or 5)
     method, path, body = _from_event(event)
     try:
         status, out = dispatch(method, path, body)

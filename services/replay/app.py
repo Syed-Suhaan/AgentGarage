@@ -57,7 +57,29 @@ def evaluate_invariants(world, spans):
 
 def run_sandbox(sandbox_id, scenario, version="1.8.2"):
     agent = scenario.get("agent") or {}
-    result = agentcore_client.invoke_agent(sandbox_id, scenario, version)
+    try:
+        result = agentcore_client.invoke_agent(sandbox_id, scenario, version)
+    except Exception as e:
+        # Infra/LLM failure (not an agent misbehavior): record status=error
+        # so the dashboard shows it instead of polling forever. Never
+        # compiles to an eval — see evals.compile's status guard.
+        rec = {
+            "sandbox_id": sandbox_id,
+            "scenario_id": scenario.get("scenario_id") or (scenario.get("origin") or {}).get("scenario_id"),
+            "agent_id": scenario.get("agent_id") or agent.get("id") or DEFAULT_AGENT,
+            "agent_version": version,
+            "status": "error",
+            "invariants": {"passed": False, "error": str(e)[:300]},
+            "final_status": "error",
+            "fault": scenario.get("fault"),
+            "initial_state": scenario.get("initial_state"),
+            "log": [],
+            "origin_trace": (scenario.get("origin") or {}).get("trace_id"),
+            "agent_message": "",
+            "runtime": runtime_label(),
+        }
+        store.put_sandbox_log(rec)
+        return rec
     world = result["world"]
     spans = result["spans"]
     invariants, final = evaluate_invariants(world, spans)
