@@ -43,7 +43,7 @@ Key specs already locked:
 
 - `schemas/api_routes.json`: `GET /agent/{id}/graph`, `GET /agent/{id}/unexplored`, `POST /agent/{id}/simulate`, `POST /scenarios/{id}/sandbox`, `GET /sandboxes/{id}`, `GET /evals`, `POST /evals/run`, `POST /demo/seed`.
 - Templates: `graph_sample.json`, `unexplored_sample.json`, `scenario_19.json` (`sc_19`, `rollback_succeeded + tool_timeout`, fault `timeout_after_success`, hypothesis double-rollback), `trace_84f2.json`, `eval_double_rollback.json` (status `protected`).
-- Demo flow (`docs/demo.md`): clean runs -> highlight timeout-after-success -> predict double rollback -> sandbox verifies `rollback_count=2` -> eval protected -> add operation token -> re-run pass.
+- Demo flow: clean runs -> highlight timeout-after-success -> predict double rollback -> sandbox verifies `rollback_count=2` -> eval protected -> add operation token -> re-run pass.
 - UI (`docs/ui.md`): graph-first, dark theme, red = verified, grey = predicted, trace/log/eval one click away, live sandbox logs, eval cards with history, <2s on demo data, Linear polish / Langfuse density.
 
 ## 3. Architecture revisions (user decisions)

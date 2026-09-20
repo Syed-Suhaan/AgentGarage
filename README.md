@@ -67,8 +67,6 @@ Tools: `get_service_health`, `query_service_logs`, `get_deployment_history`, `ro
 
 Planted bug (v1.8.2): after a rollback timeout, the agent retries without an `operation_token` / recheck and double-rollbacks past last-known-good. That path goes Unexplored → Predicted → Verified → Protected. Fix the agent, re-run the eval, pass.
 
-Judge walkthrough: [`docs/demo.md`](docs/demo.md)
-
 ---
 
 ## AWS
@@ -102,7 +100,7 @@ cdk/            Customer CDK package (not day-to-day demo deploy)
 infra/demo/     SAM + Amplify live demo stacks
 schemas/        Shared schemas / templates
 benchmarks/     Competitive harness
-docs/           Architecture, demo, CDK, CI/CD
+docs/           Architecture, CDK, CI/CD, UI
 scripts/        Deploy helpers (e.g. Amplify zip + CloudFront invalidate)
 ```
 
@@ -114,11 +112,9 @@ scripts/        Deploy helpers (e.g. Amplify zip + CloudFront invalidate)
 |---|---|
 | [`docs/overview.md`](docs/overview.md) | Product thesis |
 | [`docs/architecture.md`](docs/architecture.md) | Services + 10-step flow |
-| [`docs/demo.md`](docs/demo.md) | Judge demo script |
 | [`docs/cdk.md`](docs/cdk.md) | Full stack deploy |
 | [`docs/cicd.md`](docs/cicd.md) | Live demo via GitHub Actions |
 | [`docs/ui.md`](docs/ui.md) | Dashboard notes |
-| [`docs/ORCHESTRATOR.md`](docs/ORCHESTRATOR.md) | Demo vs CDK lock |
 
 ---
 

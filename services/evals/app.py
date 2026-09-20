@@ -72,7 +72,7 @@ def list_evals():
 
 
 def run_evals(body):
-    """POST /evals/run — docs/demo.md step 6."""
+    """POST /evals/run — re-run a protected eval against a new agent version."""
     version = (body or {}).get("agent_version") or "1.8.3"
     passed = failed = 0
     for ev in store.list_evals():
