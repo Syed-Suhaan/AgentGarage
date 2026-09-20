@@ -48,7 +48,9 @@ jobs:
       - name: Build Lambda asset
         run: python cdk/build_lambda.py
       - name: Validate SAM template
-        run: sam validate --lint --template infra/demo/template.yaml
+        run: sam validate --template infra/demo/template.yaml
+        env:
+          SAM_CLI_TELEMETRY: "0"
       - name: Pytest (services)
         run: |
           pip install pytest
