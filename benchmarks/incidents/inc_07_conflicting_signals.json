@@ -1,0 +1,6 @@
+{
+  "id": "inc_07_conflicting_signals",
+  "name": "conflicting alarms and logs",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable"
+}

@@ -24,7 +24,7 @@ Trust split:
 - Only the rule check in the sandbox moves predicted to verified.
 - Only the eval compiler, given a failed rule log, moves verified to protected.
 
-Demo agent: autonomous refund agent — goal + four tools, no fixed script. Branching is real, so the map is real.
+The demo agent is autonomous. It gets a goal and five tools, no fixed script. Its branching is real, so the map it produces is real.
 
 ## 2. Baseline — what is done
 
@@ -42,8 +42,8 @@ Demo agent: autonomous refund agent — goal + four tools, no fixed script. Bran
 Key specs already locked:
 
 - `schemas/api_routes.json`: `GET /agent/{id}/graph`, `GET /agent/{id}/unexplored`, `POST /agent/{id}/simulate`, `POST /scenarios/{id}/sandbox`, `GET /sandboxes/{id}`, `GET /evals`, `POST /evals/run`, `POST /demo/seed`.
-- Templates: `graph_sample.json`, `unexplored_sample.json`, `scenario_19.json` (`sc_19`, `refund_succeeded + tool_timeout`, fault `timeout_after_success`, hypothesis double-refund), `trace_84f2.json`, `eval_duplicate_refund.json` (status `protected`).
-- Demo flow (`docs/demo.md`): clean runs -> highlight timeout-after-success -> predict double refund -> sandbox verifies `refund_calls=2` -> eval protected -> add idempotency key -> re-run pass.
+- Templates: `graph_sample.json`, `unexplored_sample.json`, `scenario_19.json` (`sc_19`, `rollback_succeeded + tool_timeout`, fault `timeout_after_success`, hypothesis double-rollback), `trace_84f2.json`, `eval_double_rollback.json` (status `protected`).
+- Demo flow (`docs/demo.md`): clean runs -> highlight timeout-after-success -> predict double rollback -> sandbox verifies `rollback_count=2` -> eval protected -> add operation token -> re-run pass.
 - UI (`docs/ui.md`): graph-first, dark theme, red = verified, grey = predicted, trace/log/eval one click away, live sandbox logs, eval cards with history, <2s on demo data, Linear polish / Langfuse density.
 
 ## 3. Architecture revisions (user decisions)
@@ -71,7 +71,7 @@ Key specs already locked:
 - Decide: keep Python CDK (`app.py + stacks/*.py`); update `docs/cdk.md` repo-map which still references TypeScript `bin/agentgarage.ts`.
 
 ### Phase 1 — Network + Storage
-- `stacks/network.py`: VPC (public + private subnets, 1 NAT), S3/DDB Gateway endpoints, Kinesis Interface endpoint, SGs for Neptune / Fargate / Lambdas. Expose `self.vpc`.
+- `stacks/network.py`: VPC (public + private subnets, 1 NAT), S3/DDB Gateway endpoints, Kinesis Interface endpoint, SGs for Neptune / collector / Lambdas. Expose `self.vpc`.
 - `stacks/storage.py`: KMS key; 3 S3 buckets (traces, sandbox-logs, evals; versioned, block-public; demo 1-day expiry, private no expiry + deletion protection); 4 DDB on-demand tables (sessions, jobs, evals, agents with BYOK fields; TTL only in demo for sessions/jobs). Secrets Manager: collector key, demo creds.
 - Verify: `cdk synth -c mode=demo`, `cdk synth -c mode=private`.
 
@@ -87,13 +87,13 @@ Key specs already locked:
 - Expose `collector_url, stream`. Outputs: endpoint + secret ARN + stream name.
 
 ### Phase 4 — Compute + Model path
-- `stacks/compute.py`: ECS cluster + Fargate sandbox task defs (no internet egress, killed after run, logs to sandbox-logs bucket). Remove GPU host.
-- `simulation_fn`: Bedrock default + BYOK branch, writes `predicted` scenarios (e.g. `sc_19` shape) to DDB/S3.
-- IAM: simulation gets `bedrock:InvokeModel` + scoped `secretsmanager:GetSecretValue`; sandbox gets none for models.
-- Expose `cluster, sandbox_task, simulation_fn`.
+- `stacks/compute.py`: `simulation_fn` Bedrock default + BYOK branch, writes `predicted` scenarios to DDB/S3. No EC2 host.
+- `stacks/agentcore.py`: AgentCore Runtime microVM sandbox (ECR image + VPC, no internet). Demo builds `agentcore/Dockerfile`; private takes `-c agentImageUri=`.
+- IAM: simulation gets `bedrock:InvokeModel` + scoped `secretsmanager:GetSecretValue`; sandbox runner gets `bedrock-agentcore:InvokeAgentRuntime` only.
+- Expose `simulation_fn` (compute) + `runtime_arn` (agentcore).
 
 ### Phase 5 — Orchestration
-- `stacks/orchestration.py`: EventBridge/S3 rule (trace arrival -> graph builder); Step Functions sandbox sequence: restore start state -> inject fault -> `ecs:RunTask` agent image (default or `agents.image_uri`) -> rule-check Lambda (`predicted -> verified`) -> eval-compiler Lambda (`verified -> protected`, writes YAML to evals bucket + DDB index).
+- `stacks/orchestration.py`: EventBridge/S3 rule (trace arrival -> graph builder); Step Functions sandbox sequence: restore start state -> inject fault -> InvokeAgentRuntime on registered image -> verifier Lambda (`predicted -> verified`, code invariants only) -> eval-compiler Lambda (`verified -> protected`, writes YAML to evals bucket + DDB index).
 - Expose `state_machine`.
 
 ### Phase 6 — API + Frontend
@@ -102,7 +102,7 @@ Key specs already locked:
 - `app.py`: keep wiring order Network -> Storage -> Graph/Intake/Compute -> Orchestration -> Api -> Frontend. Add `CfnOutput`s: dashboard URL, collector endpoint + secret ARN, Neptune endpoint, Kinesis stream, Bedrock model IDs. Remove stale OpenSearch / EC2 outputs.
 
 ### Phase 7 — Demo + hardening
-- `POST /demo/seed {runs:5}` -> 5 traces -> dashboard draws observed paths + one unexplored (`refund_succeeded + tool_timeout`) -> simulate predicts double-refund -> sandbox `verified_fail` (`refund_calls=2`, log in S3) -> eval `protected` -> fix agent (idempotency key) -> `POST /evals/run` passes.
+- `POST /demo/seed {runs:5}` -> 5 traces -> dashboard draws observed paths + one unexplored (`rollback_succeeded + tool_timeout`) -> simulate predicts double-rollback -> sandbox `verified_fail` (`rollback_count=2`, log in S3) -> eval `protected` -> fix agent (operation token) -> `POST /evals/run` passes.
 - UI: paginate everything, stream sandbox logs (no hidden spinners), eval cards link trace/log/file.
 - Performance: <2s on demo data.
 
@@ -149,7 +149,8 @@ cdk/
     storage.py           # S3, DDB, KMS, Secrets
     graph.py             # Neptune Serverless + query Lambda (ex-search.py)
     intake.py            # collector ECS + Kinesis + redact Lambda
-    compute.py           # Fargate sandbox + Bedrock/BYOK simulation_fn
+    compute.py           # Bedrock/BYOK simulation_fn
+    agentcore.py         # AgentCore Runtime microVM sandbox
     orchestration.py     # Step Functions + EventBridge
     api.py               # Gateway + Lambdas
     frontend.py          # Amplify + Cognito

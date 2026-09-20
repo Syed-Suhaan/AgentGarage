@@ -23,7 +23,7 @@ const STEPS = [
   {
     step: 1,
     title: "Seed Traces",
-    description: "Run the demo refund agent and capture production traces.",
+    description: "Run the demo SRE agent and capture production traces.",
     icon: Play,
     href: null,
     color: "text-blue-400",
@@ -41,7 +41,7 @@ const STEPS = [
     step: 3,
     title: "Find Gaps",
     description:
-      "The graph highlights paths the agent never took — like a timeout after a successful refund.",
+      "The graph highlights paths the agent never took — like a timeout after a successful rollback.",
     icon: Search,
     href: "/dashboard/gaps",
     color: "text-gray-400",
@@ -50,7 +50,7 @@ const STEPS = [
     step: 4,
     title: "Simulate Scenario",
     description:
-      "The world model predicts: agent will retry and refund twice.",
+      "The world model predicts: agent will retry and roll back one version too far.",
     icon: FlaskConical,
     href: "/dashboard/scenarios",
     color: "text-gray-400",
@@ -59,7 +59,7 @@ const STEPS = [
     step: 5,
     title: "Verify in Sandbox",
     description:
-      "A Fargate sandbox creates the exact timeout and runs the real agent. Ledger shows 2 refunds.",
+      "An AgentCore microVM sandbox creates the exact timeout and runs the real agent. Ledger shows 2 rollbacks.",
     icon: AlertTriangle,
     href: "/dashboard/sandboxes/sb_07",
     color: "text-red-400",
@@ -104,8 +104,8 @@ export default function DemoPage() {
             AgentGarage Walkthrough
           </h1>
           <p className="text-[#8f8f8d] mt-2 max-w-lg mx-auto text-sm leading-relaxed">
-            Watch a live refund agent get evaluated on a path it never encountered:
-            a tool timeout after a successful refund.
+            Watch a live SRE agent get evaluated on a path it never encountered:
+            a tool timeout after a successful rollback.
           </p>
         </div>
 
@@ -196,7 +196,7 @@ export default function DemoPage() {
               <CheckCircle2 className="h-8 w-8 text-emerald-400 mx-auto mb-3" />
               <h3 className="text-lg font-mono font-semibold text-[#f3f3f1]">Walkthrough Complete</h3>
               <p className="text-sm font-mono text-[#8f8f8d] mt-1">
-                The duplicate-refund failure is now a permanent regression eval.
+                The double-rollback failure is now a permanent regression eval.
                 Every future agent version will be tested against it in CI/CD.
               </p>
               <div className="mt-4">

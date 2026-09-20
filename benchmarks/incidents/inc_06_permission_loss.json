@@ -1,0 +1,6 @@
+{
+  "id": "inc_06_permission_loss",
+  "name": "permission loss during remediation",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable"
+}

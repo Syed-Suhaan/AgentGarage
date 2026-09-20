@@ -1,17 +1,28 @@
-"""Compute: Fargate sandbox + Bedrock simulation_fn (services.simulate)."""
+"""Compute: Bedrock simulation_fn (services.simulate).
+
+Sandbox execution lives in Bedrock AgentCore Runtime (cdk/stacks/agentcore.py),
+not here. This stack owns no agent task definitions.
+"""
+import os
+
 import aws_cdk as cdk
 from aws_cdk import (
     aws_ec2 as ec2,
-    aws_ecs as ecs,
     aws_iam as iam,
     aws_lambda as _lambda,
 )
 
 from backend_asset import backend_code
 
+# Anthropic Marketplace models need a valid payment instrument; until then
+# use Amazon Nova in us-east-1 (not available on-demand in ap-south-2).
 BEDROCK_MODEL_IDS = {
-    "demo": "anthropic.claude-haiku-4-5-20251001-v1:0",
-    "private": "anthropic.claude-sonnet-4-20250514-v1:0",
+    "demo": "amazon.nova-micro-v1:0",
+    "private": "amazon.nova-lite-v1:0",
+}
+BEDROCK_REGIONS = {
+    "demo": "us-east-1",
+    "private": "us-east-1",
 }
 
 
@@ -20,30 +31,11 @@ class Compute(cdk.NestedStack):
         super().__init__(scope, id, **kwargs)
         self.mode = mode
         self.bedrock_model_id = BEDROCK_MODEL_IDS[mode]
+        self.bedrock_region = BEDROCK_REGIONS[mode]
         code = backend_code()
 
-        self.cluster = ecs.Cluster(self, "SandboxCluster", vpc=network.vpc)
-
-        self.sandbox_sg = ec2.SecurityGroup(
-            self,
-            "SandboxSG",
-            vpc=network.vpc,
-            description="Sandbox tasks: reserved for future Fargate agent image",
-            allow_all_outbound=False,
-        )
-
-        self.sandbox_task = ecs.FargateTaskDefinition(
-            self, "SandboxTask", cpu=1024, memory_limit_mib=2048
-        )
-        self.sandbox_task.add_container(
-            "Agent",
-            image=ecs.ContainerImage.from_registry(
-                "public.ecr.aws/amazonlinux/amazonlinux:2023"
-            ),
-            logging=ecs.LogDrivers.aws_logs(stream_prefix="sandbox"),
-            environment={"MODE": mode},
-        )
-        storage.sandbox_logs_bucket.grant_write(self.sandbox_task.task_role)
+        # NOTE: sandbox agent execution is Bedrock AgentCore Runtime
+        # (cdk/stacks/agentcore.py). No placeholder Fargate task lives here.
 
         neptune_ep = graph.cluster_endpoint if graph is not None else ""
         self.simulation_fn = _lambda.Function(
@@ -70,7 +62,9 @@ class Compute(cdk.NestedStack):
                 "EVALS_TABLE": storage.evals_table.table_name,
                 "NEPTUNE_ENDPOINT": neptune_ep,
                 "BEDROCK_MODEL_ID": self.bedrock_model_id,
-                "BEDROCK_REGION": cdk.Stack.of(self).region,
+                "BEDROCK_REGION": self.bedrock_region,
+                "TYPESAFE_API_KEY": os.environ.get("TYPESAFE_API_KEY", ""),
+                "JEV_MODEL": os.environ.get("JEV_MODEL", "jev-latest"),
             },
         )
         self.simulation_fn.add_to_role_policy(
@@ -98,6 +92,7 @@ class Compute(cdk.NestedStack):
                         "neptune-db:connect",
                         "neptune-db:ReadDataViaQuery",
                         "neptune-db:WriteDataViaQuery",
+                        "neptune-db:DeleteDataViaQuery",
                     ],
                     resources=["*"],
                 )

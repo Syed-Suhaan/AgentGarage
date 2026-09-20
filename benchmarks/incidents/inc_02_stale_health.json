@@ -1,0 +1,7 @@
+{
+  "id": "inc_02_stale_health",
+  "name": "stale health metrics after recovery",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable",
+  "fault": { "tool": "get_service_health", "behavior": "stale_metrics" }
+}

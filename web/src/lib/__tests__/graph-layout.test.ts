@@ -5,29 +5,30 @@ import type { AgentGraph } from "../types";
 describe("layoutGraph", () => {
   const sampleGraph: AgentGraph = {
     nodes: [
-      { id: "customer_verified", label: "customer_verified" },
-      { id: "refund_pending", label: "refund_pending" },
-      { id: "refund_succeeded", label: "refund_succeeded" },
+      { id: "health_inspected", label: "health_inspected" },
+      { id: "rollback_succeeded", label: "rollback_succeeded" },
+      { id: "service_restored", label: "service_restored" },
+      { id: "rollback_timeout", label: "rollback_timeout" },
     ],
     edges: [
       {
-        from: "customer_verified",
-        action: "get_order",
-        to: "refund_pending",
+        from: "health_inspected",
+        action: "get_deployment_history",
+        to: "rollback_succeeded",
         kind: "observed",
         source: "tr_84f2",
       },
       {
-        from: "refund_pending",
-        action: "issue_refund",
-        to: "refund_succeeded",
+        from: "rollback_succeeded",
+        action: "verify_service",
+        to: "service_restored",
         kind: "observed",
         source: "tr_84f2",
       },
       {
-        from: "refund_succeeded",
+        from: "rollback_succeeded",
         action: "tool_timeout",
-        to: "refund_pending",
+        to: "rollback_timeout",
         kind: "predicted",
         source: "sc_19",
       },
@@ -37,10 +38,9 @@ describe("layoutGraph", () => {
   it("converts AgentGraph into React Flow positioned nodes and styled edges", () => {
     const { nodes, edges } = layoutGraph(sampleGraph, "TB");
 
-    expect(nodes).toHaveLength(3);
+    expect(nodes).toHaveLength(4);
     expect(edges).toHaveLength(3);
 
-    // Nodes have coordinates calculated by dagre
     nodes.forEach((node) => {
       expect(node.position).toBeDefined();
       expect(typeof node.position.x).toBe("number");
@@ -48,7 +48,6 @@ describe("layoutGraph", () => {
       expect(node.type).toBe("stateNode");
     });
 
-    // Predicted edges are animated
     const predictedEdge = edges.find((e) => e.data?.kind === "predicted");
     expect(predictedEdge?.animated).toBe(true);
 

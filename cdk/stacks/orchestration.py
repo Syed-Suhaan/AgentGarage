@@ -1,4 +1,4 @@
-"""Orchestration: Step Functions — run sandbox Lambda then eval compiler."""
+"""Orchestration: Step Functions — invoke AgentCore sandbox, then eval compiler."""
 import aws_cdk as cdk
 from aws_cdk import (
     aws_iam as iam,
@@ -11,7 +11,7 @@ from backend_asset import backend_code
 
 
 class Orchestration(cdk.NestedStack):
-    def __init__(self, scope, id, mode: str, compute, storage, network, **kwargs):
+    def __init__(self, scope, id, mode: str, compute, storage, network, agentcore, **kwargs):
         super().__init__(scope, id, **kwargs)
         self.mode = mode
         code = backend_code()
@@ -26,10 +26,13 @@ class Orchestration(cdk.NestedStack):
             "TRACES_BUCKET": storage.traces_bucket.bucket_name,
             "SESSIONS_TABLE": storage.sessions_table.table_name,
             "BEDROCK_MODEL_ID": compute.bedrock_model_id,
-            "BEDROCK_REGION": cdk.Stack.of(self).region,
+            "BEDROCK_REGION": compute.bedrock_region,
+            "AGENTCORE_RUNTIME_ARN": agentcore.runtime_arn,
+            "AGENTCORE_REGION": cdk.Stack.of(self).region,
         }
 
-        # Runs real Strands agent with fault injection (services.replay)
+        # Invokes the agent inside AgentCore Runtime (real microVM), then
+        # applies code-level invariants. Agent code never runs in this Lambda.
         self.rule_check_fn = _lambda.Function(
             self,
             "SandboxRunFn",
@@ -46,8 +49,8 @@ class Orchestration(cdk.NestedStack):
         storage.traces_bucket.grant_read(self.rule_check_fn)
         self.rule_check_fn.add_to_role_policy(
             iam.PolicyStatement(
-                actions=["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
-                resources=["*"],
+                actions=["bedrock-agentcore:InvokeAgentRuntime"],
+                resources=[agentcore.runtime_arn],
             )
         )
 

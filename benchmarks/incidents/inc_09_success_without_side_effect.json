@@ -1,0 +1,6 @@
+{
+  "id": "inc_09_success_without_side_effect",
+  "name": "success response without side effect",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable"
+}

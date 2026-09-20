@@ -1,0 +1,6 @@
+{
+  "id": "inc_10_verify_unavailable",
+  "name": "verification data temporarily unavailable",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable"
+}

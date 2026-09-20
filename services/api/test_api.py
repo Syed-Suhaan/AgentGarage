@@ -1,7 +1,7 @@
 """Architecture flow against AWS. Needs real env + Bedrock.
 
   STORE=memory python -m services.api.test_api   # graph/redact only, no Bedrock
-  python -m agent.refund                         # one real Bedrock run
+  python -m agent.sre                            # one real Bedrock run
 """
 import os
 import sys
@@ -18,21 +18,22 @@ from services.graph import app as graph
 def test_redact_and_graph_memory():
     os.environ["STORE"] = "memory"
     store.reset()
-    secret = collector.redact({"token": "abc", "order_id": "o_9"})
+    secret = collector.redact({"token": "abc", "service": "checkout"})
     assert secret["token"] == "[REDACTED]"
     trace = collector.ingest({
-        "agent_id": "refund-agent",
+        "agent_id": "sre-agent",
         "spans": [
-            {"name": "verify_customer", "tool": "verify_customer", "status": "ok"},
-            {"name": "get_order", "tool": "get_order", "status": "ok"},
-            {"name": "issue_refund", "tool": "issue_refund", "status": "ok"},
-            {"name": "send_email", "tool": "send_email", "status": "ok"},
+            {"name": "get_service_health", "tool": "get_service_health", "status": "ok"},
+            {"name": "query_service_logs", "tool": "query_service_logs", "status": "ok"},
+            {"name": "get_deployment_history", "tool": "get_deployment_history", "status": "ok"},
+            {"name": "rollback_deployment", "tool": "rollback_deployment", "status": "ok"},
+            {"name": "verify_service", "tool": "verify_service", "status": "ok"},
         ],
     })
     graph.index_trace(trace)
-    g = graph.graph("refund-agent")
+    g = graph.graph("sre-agent")
     assert any(e["kind"] == "observed" for e in g["edges"])
-    frontier = graph.unexplored("refund-agent")
+    frontier = graph.unexplored("sre-agent")
     assert frontier[0]["untried_action"] == "tool_timeout"
 
 
@@ -44,8 +45,8 @@ def test_real_agent_once():
     except Exception as e:
         print("skip real agent:", e)
         return
-    from agent.refund import run
-    out = run(customer_id="c_smoke", order_id="o_smoke")
+    from agent.sre import run
+    out = run(service="checkout")
     assert out["trace"]["spans"], "agent produced no tool spans"
     print("world", out["world"])
 

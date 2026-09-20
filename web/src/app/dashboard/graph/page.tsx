@@ -1,12 +1,13 @@
 "use client";
 
 import { Search, Bell, Sparkles } from "lucide-react";
+import { DEMO_AGENT_ID } from "@/lib/agent";
 import { useGraph } from "@/lib/hooks/use-graph";
 import { BehaviourGraph } from "@/components/graph/behaviour-graph";
 import { GraphSkeleton } from "@/components/shared/loading-skeleton";
 
 export default function GraphPage() {
-  const { data: graph, isLoading } = useGraph("refund-agent");
+  const { data: graph, isLoading } = useGraph(DEMO_AGENT_ID);
 
   if (isLoading) {
     return (

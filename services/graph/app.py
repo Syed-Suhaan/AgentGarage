@@ -1,4 +1,4 @@
-"""Builds state edges into OpenSearch. Finds untried state-action pairs.
+"""Builds state edges into Neptune. Finds untried state-action pairs.
 
 Architecture steps 4–5. Trigger: EventBridge on a new trace in S3.
 """
@@ -6,37 +6,45 @@ from urllib.parse import unquote_plus
 
 from services import store
 
-START = "customer_unverified"
+START = "service_degraded"
+DEFAULT_AGENT = "sre-agent"
 
 # Legal next state after (state, tool).
 NEXT = {
-    ("customer_unverified", "verify_customer"): "customer_verified",
-    ("customer_verified", "get_order"): "refund_pending",
-    ("refund_pending", "issue_refund"): "refund_succeeded",
-    ("refund_failed", "issue_refund"): "refund_succeeded",
-    ("refund_succeeded", "send_email"): "email_sent",
-    ("tool_timeout", "issue_refund"): "refund_succeeded",
+    ("service_degraded", "get_service_health"): "health_inspected",
+    ("health_inspected", "query_service_logs"): "logs_queried",
+    ("logs_queried", "get_deployment_history"): "bad_deployment_identified",
+    ("bad_deployment_identified", "rollback_deployment"): "rollback_succeeded",
+    ("rollback_failed", "rollback_deployment"): "rollback_succeeded",
+    ("rollback_succeeded", "verify_service"): "service_restored",
+    ("rollback_timeout", "rollback_deployment"): "rollback_succeeded",
 }
 
-# Tools/faults the agent may try from each state (vocab.json + demo path).
+# Tools/faults the agent may try from each state.
 LEGAL = {
-    "customer_unverified": ["verify_customer"],
-    "customer_verified": ["get_order"],
-    "order_loaded": ["issue_refund"],
-    "refund_pending": ["issue_refund", "duplicate_callback", "http_500", "partial_json", "mid_run_403"],
-    "refund_succeeded": ["send_email", "tool_timeout"],
-    "refund_failed": ["issue_refund", "send_email"],
-    "email_sent": [],
-    "tool_timeout": ["issue_refund"],
+    "service_degraded": ["get_service_health"],
+    "health_inspected": ["query_service_logs"],
+    "logs_queried": ["get_deployment_history"],
+    "bad_deployment_identified": [
+        "rollback_deployment",
+        "duplicate_callback",
+        "http_500",
+        "partial_json",
+        "mid_run_403",
+    ],
+    "rollback_succeeded": ["verify_service", "tool_timeout"],
+    "rollback_failed": ["rollback_deployment", "verify_service"],
+    "service_restored": [],
+    "rollback_timeout": ["rollback_deployment"],
 }
 
-# docs/demo.md: timeout after refund succeeded is the path we highlight first.
+# Demo path: timeout after rollback succeeded is the path we highlight first.
 RANK = {"tool_timeout": 0, "duplicate_callback": 1}
 
 
 def index_trace(trace):
     """Write observed edges for one redacted trace."""
-    agent_id = trace.get("agent_id") or "refund-agent"
+    agent_id = trace.get("agent_id") or DEFAULT_AGENT
     state = START
     for span in trace.get("spans") or []:
         tool = span.get("tool") or span.get("name")
@@ -97,10 +105,10 @@ def unexplored(agent_id):
 
 
 def _next(state, tool, status):
-    if tool == "issue_refund" and status == "timeout":
-        return "tool_timeout"
-    if tool == "issue_refund" and status != "ok":
-        return "refund_failed"
+    if tool == "rollback_deployment" and status == "timeout":
+        return "rollback_timeout"
+    if tool == "rollback_deployment" and status != "ok":
+        return "rollback_failed"
     return NEXT.get((state, tool), state)
 
 
@@ -108,7 +116,7 @@ def lambda_handler(event, context=None):
     """API Gateway (graph/unexplored) or S3/EventBridge (index)."""
     path = event.get("path") or event.get("rawPath") or ""
     params = event.get("pathParameters") or {}
-    agent_id = params.get("id") or "refund-agent"
+    agent_id = params.get("id") or DEFAULT_AGENT
     if "/unexplored" in path:
         body = unexplored(agent_id)
         return _api(200, body)

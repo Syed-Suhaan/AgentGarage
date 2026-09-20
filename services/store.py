@@ -50,7 +50,7 @@ def reset():
 
 def put_trace(trace):
     _require_aws()
-    agent_id = trace.get("agent_id") or "refund-agent"
+    agent_id = trace.get("agent_id") or "sre-agent"
     trace_id = trace["trace_id"]
     key = f"{agent_id}/{trace_id}.json"
     if _memory():
@@ -135,6 +135,33 @@ def get_job(job_id):
         return _MEM["jobs"].get(job_id)
     item = _table("JOBS_TABLE").get_item(Key={"job_id": job_id}).get("Item")
     return json.loads(item["doc"]) if item else None
+
+
+def list_jobs(kind=None, limit=100):
+    """Scan jobs; optional kind filter (scenario|sandbox). Demo-scale only."""
+    _require_aws()
+    if _memory():
+        rows = list(_MEM["jobs"].values())
+        if kind:
+            rows = [r for r in rows if r.get("kind") == kind]
+        return rows[:limit]
+    table = _table("JOBS_TABLE")
+    if kind:
+        resp = table.scan(
+            FilterExpression="kind = :k",
+            ExpressionAttributeValues={":k": kind},
+            Limit=max(limit * 3, 50),
+        )
+    else:
+        resp = table.scan(Limit=max(limit * 3, 50))
+    out = []
+    for item in resp.get("Items") or []:
+        doc = item.get("doc")
+        if doc:
+            out.append(json.loads(doc))
+        if len(out) >= limit:
+            break
+    return out
 
 
 def put_sandbox_log(rec):

@@ -1,1 +1,33 @@
-{"states":["customer_unverified","customer_verified","order_loaded","refund_pending","refund_succeeded","refund_failed","email_sent","tool_timeout"],"tools":["verify_customer","get_order","issue_refund","send_email"],"faults":["timeout_after_success","http_500","duplicate_callback","partial_json","mid_run_403"],"invariants":["refund_calls <= 1","steps < 20","final_status in [refunded, failed, pending]"]}
+{
+  "states": [
+    "service_degraded",
+    "health_inspected",
+    "logs_queried",
+    "bad_deployment_identified",
+    "rollback_succeeded",
+    "rollback_failed",
+    "rollback_timeout",
+    "service_restored"
+  ],
+  "tools": [
+    "get_service_health",
+    "query_service_logs",
+    "get_deployment_history",
+    "rollback_deployment",
+    "verify_service"
+  ],
+  "faults": [
+    "timeout_after_success",
+    "http_500",
+    "duplicate_callback",
+    "partial_json",
+    "mid_run_403"
+  ],
+  "invariants": [
+    "rollback_count <= 1",
+    "active_version == last_known_good",
+    "checkout_available == true",
+    "verified_after_remediation == true",
+    "steps < 20"
+  ]
+}

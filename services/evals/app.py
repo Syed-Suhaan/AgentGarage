@@ -5,11 +5,20 @@ Architecture steps 8–9. Only this module may set status to protected.
 from services import store
 from services.replay import app as replay
 
+DEFAULT_AGENT = "sre-agent"
+PRIMARY_EVAL = "eval_double_rollback_after_timeout"
+PRIMARY_INVARIANTS = [
+    "rollback_count <= 1",
+    "active_version == last_known_good",
+    "checkout_available == true",
+    "verified_after_remediation == true",
+]
+
 
 def compile(sandbox):
     if not sandbox or sandbox.get("invariants", {}).get("passed"):
         return None
-    eid = "eval_duplicate_refund_after_timeout"
+    eid = PRIMARY_EVAL
     if (sandbox.get("fault") or {}).get("behavior") != "timeout_after_success":
         eid = f"eval_{sandbox.get('scenario_id') or sandbox['sandbox_id']}"
     rec = {
@@ -19,17 +28,22 @@ def compile(sandbox):
             "scenario_id": sandbox.get("scenario_id"),
         },
         "agent": {
-            "id": sandbox.get("agent_id") or "refund-agent",
+            "id": sandbox.get("agent_id") or DEFAULT_AGENT,
             "version": "1.8.2",
             "prompt_hash": "sha256:demo",
         },
         "initial_state": sandbox.get("initial_state") or {
-            "customer_verified": True,
-            "refund_status": "pending",
-            "ledger_refunds": 0,
+            "service": "checkout",
+            "health_checked": True,
+            "logs_queried": True,
+            "deployment_checked": True,
+            "active_version": "v1.8.3-bad",
+            "last_known_good": "v1.8.2",
+            "rollback_count": 0,
+            "checkout_available": False,
         },
         "fault": sandbox.get("fault"),
-        "invariants": ["refund_calls <= 1", "final_status != double_refunded"],
+        "invariants": PRIMARY_INVARIANTS,
         "status": "protected",
         "history": [],
     }
@@ -39,7 +53,7 @@ def compile(sandbox):
         sc["status"] = "protected"
         store.put_job(sc)
         store.put_edge({
-            "agent_id": sandbox.get("agent_id") or "refund-agent",
+            "agent_id": sandbox.get("agent_id") or DEFAULT_AGENT,
             "from": sc.get("unexplored_state"),
             "action": sc.get("untried_action"),
             "to": "unknown",

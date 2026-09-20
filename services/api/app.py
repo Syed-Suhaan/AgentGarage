@@ -7,11 +7,11 @@ import json
 import os
 import re
 
-from agent.refund import run as run_agent
-from services import store
+from services import agentcore_client, store
 from services.collector import app as collector
 from services.evals import app as evals
 from services.graph import app as graph
+from services.rank import highest_risk, list_predicted
 from services.replay import app as replay
 from services.simulate import app as simulate_svc
 
@@ -35,8 +35,45 @@ def simulate(agent_id, body):
     return simulate_svc.simulate(agent_id, body)
 
 
+def list_scenarios(agent_id):
+    """Predicted scenarios ranked by risk_score (highest first)."""
+    rows = list_predicted(agent_id)
+    return {
+        "scenarios": [
+            {
+                "scenario_id": s.get("scenario_id"),
+                "unexplored_state": s.get("unexplored_state"),
+                "untried_action": s.get("untried_action"),
+                "fault": s.get("fault"),
+                "hypothesis": s.get("hypothesis"),
+                "initial_state": s.get("initial_state"),
+                "status": s.get("status"),
+                "risk_score": s.get("risk_score"),
+                "failure_likelihood": s.get("failure_likelihood"),
+                "blast_radius": s.get("blast_radius"),
+                "jev_confidence": s.get("jev_confidence"),
+                "rank_source": s.get("rank_source"),
+            }
+            for s in rows
+        ]
+    }
+
+
+def next_sandbox(agent_id):
+    """Highest-risk predicted scenario ready for sandbox."""
+    top = highest_risk(agent_id)
+    if not top:
+        return {"scenario_id": None}
+    return {
+        "scenario_id": top.get("scenario_id"),
+        "risk_score": top.get("risk_score"),
+        "hypothesis": top.get("hypothesis"),
+        "rank_source": top.get("rank_source"),
+    }
+
+
 def start_sandbox(scenario_id):
-    """POST /scenarios/{id}/sandbox → Step Functions → Fargate."""
+    """POST /scenarios/{id}/sandbox → Step Functions → AgentCore Runtime."""
     arn = os.environ.get("STATE_MACHINE_ARN")
     if not arn:
         raise RuntimeError("STATE_MACHINE_ARN is required")
@@ -78,12 +115,27 @@ def run_evals(body):
 
 
 def seed_demo(body):
-    """POST /demo/seed — docs/demo.md step 1: run clean tasks."""
+    """POST /demo/seed — run clean tasks inside AgentCore Runtime, ingest traces."""
+    import uuid
+
     runs = int((body or {}).get("runs") or 5)
     ids = []
-    for i in range(runs):
-        result = run_agent(customer_id=f"c_{i + 1}", order_id=f"o_{i + 9}")
-        trace = collector.ingest(result["trace"])
+    for _ in range(runs):
+        result = agentcore_client.invoke_agent(
+            f"seed-{uuid.uuid4().hex[:8]}",
+            {
+                "agent_id": "sre-agent",
+                "agent": {"id": "sre-agent"},
+                "initial_state": {"service": "checkout"},
+                "fault": {},
+            },
+            "1.8.2",
+        )
+        trace = collector.ingest({
+            "agent_id": result.get("agent_id") or "sre-agent",
+            "agent_version": result.get("agent_version") or "1.8.2",
+            "spans": result["spans"],
+        })
         ids.append(trace["trace_id"])
     return {"traces_written": len(ids)}
 
@@ -100,6 +152,8 @@ def dispatch(method, path, body=None):
         ("GET", r"^/agent/([^/]+)/graph$", lambda m: get_graph(m.group(1))),
         ("GET", r"^/agent/([^/]+)/unexplored$", lambda m: get_unexplored(m.group(1))),
         ("POST", r"^/agent/([^/]+)/simulate$", lambda m: simulate(m.group(1), body)),
+        ("GET", r"^/agent/([^/]+)/scenarios$", lambda m: list_scenarios(m.group(1))),
+        ("GET", r"^/agent/([^/]+)/scenarios/next$", lambda m: next_sandbox(m.group(1))),
         ("POST", r"^/scenarios/([^/]+)/sandbox$", lambda m: start_sandbox(m.group(1))),
         ("GET", r"^/sandboxes/([^/]+)$", lambda m: get_sandbox(m.group(1))),
         ("GET", r"^/evals$", lambda m: list_evals()),

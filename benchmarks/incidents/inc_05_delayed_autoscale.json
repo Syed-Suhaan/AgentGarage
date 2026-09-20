@@ -1,0 +1,6 @@
+{
+  "id": "inc_05_delayed_autoscale",
+  "name": "repeated scaling from delayed telemetry",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable"
+}

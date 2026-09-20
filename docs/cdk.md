@@ -48,8 +48,8 @@ with an optional BYOK override per agent row.
 ## What the stack creates
 
 Networking: one VPC with public and private subnets, 1 NAT, VPC endpoints
-for S3 and DynamoDB (Gateway) + Kinesis (Interface). SGs for Neptune,
-Fargate, Lambdas.
+for S3 and DynamoDB (Gateway) + Kinesis (Interface) + ECR/Bedrock Runtime
+(Interface, sandbox). SGs for Neptune, collector, Lambdas, AgentCore microVMs.
 
 Storage: KMS key; three S3 buckets (traces, sandbox logs, evals) with KMS
 encryption and versioning (demo: 1-day expiry; private: no expiry + RETAIN);
@@ -66,24 +66,31 @@ parses traces on arrival.
 
 Intake: ECS Fargate collector service + ALB (public + API key in demo;
 internal ALB in private) -> Kinesis Data Stream (on-demand, KMS, 24h demo /
-7d private) -> Cedar `redact_fn` (EventSourceMapping batch 100,
+7d private) -> `redact_fn` allowlist redactor (EventSourceMapping batch 100,
 bisect-on-error, SQS DLQ) -> S3 traces + DynamoDB sessions. CloudWatch lag
 alarms on iterator age.
 
-Compute: ECS cluster + Fargate sandbox task defs (no internet egress,
-killed after run, logs to sandbox-logs bucket, zero model IAM).
-`simulation_fn` Lambda: default `bedrock:InvokeModel` in-region; if the
+Compute: `simulation_fn` Lambda: default `bedrock:InvokeModel` in-region; if the
 `agents` row has `model_override {endpoint, secret_arn}`, call the customer
 endpoint via Secrets Manager. Writes `predicted` scenarios (e.g. `sc_19`
 shape) to DDB/S3. IAM: simulation gets `bedrock:InvokeModel` + scoped
-`secretsmanager:GetSecretValue`; sandbox gets none (trust split preserved).
-No EC2 world-model host.
+`secretsmanager:GetSecretValue`. Sandbox agent execution is NOT in this
+stack (see AgentCore below). No EC2 world-model host.
+
+AgentCore: Bedrock AgentCore Runtime (dedicated Firecracker microVM per
+session, VPC mode, no internet, sanitized on termination). The stack
+references an ECR image URI — synth needs no Docker. Build + push once with
+`scripts/push_agent_image` (demo), or pass `-c agentImageUri=` for your own
+container. VPC endpoints for ECR/S3/Bedrock Runtime; execution role with ECR
+pull, CloudWatch Logs, Bedrock invoke, sandbox-logs write.
 
 Orchestration: one Step Functions state machine for the sandbox sequence
-(restore start state -> inject fault -> `ecs:RunTask` agent image, default
-or `agents.image_uri` -> rule-check Lambda `predicted -> verified` ->
+(restore start state -> inject fault -> InvokeAgentRuntime on the registered
+image -> verifier Lambda `predicted -> verified` ->
 eval-compiler Lambda `verified -> protected`, YAML to evals bucket + DDB
 index); one EventBridge rule from S3 trace arrival to the state machine.
+The verifier Lambda applies code invariants only; agent code never runs
+there.
 
 API: API Gateway `RestApi` + Cognito authorizer; 8 routes from
 `schemas/api_routes.json` wired to Lambdas (graph/simulate hit the
@@ -115,13 +122,19 @@ traces start flowing.
 
 Private mode accepts traces from any agent that emits OTLP. Set three
 resource attributes on spans: `agent.id`, `agent.version`, `prompt.hash`.
-No SDK is required. The Strands agent in `agent/` is one example, not a
-dependency.
+No SDK is required. The Strands agent in `agent/` is the reference demo
+agent, not a dependency.
 
-Sandbox runs execute the agent code provided at seed time. For arbitrary
-agents, package the agent as a container image and register its URI in the
-`agents` table (`image_uri`). The sandbox pulls that image instead of the
-default. Optionally register a BYOK model endpoint + secret
+Sandbox runs execute YOUR agent container in Bedrock AgentCore Runtime.
+Deploy with your image URI:
+
+```bash
+cdk deploy -c mode=private -c agentImageUri=ACCOUNT.dkr.ecr.REGION.amazonaws.com/your-agent:tag
+```
+
+Your image must be linux/arm64 and expose `GET /ping` + `POST /invocations`
+on port 8080 (see `agentcore/server.py` for the scenario payload).
+Optionally register a BYOK model endpoint + secret
 (`model_endpoint`, `model_secret_arn`); `simulation_fn` calls it instead of
 Bedrock for that agent.
 
@@ -138,8 +151,12 @@ cdk/
     graph.py             # Neptune Serverless + query/builder Lambdas (ex-search.py)
     search.py            # back-compat shim re-exporting Graph as Search
     intake.py            # collector ECS + Kinesis + redact Lambda
-    compute.py           # Fargate sandbox + Bedrock/BYOK simulation_fn (no EC2)
+    compute.py           # Bedrock/BYOK simulation_fn (no EC2)
+    agentcore.py         # AgentCore Runtime microVM sandbox (ECR image + VPC)
     orchestration.py     # Step Functions + EventBridge
     api.py               # Gateway + Lambda handlers (8 routes)
     frontend.py          # Amplify + Cognito
+agentcore/
+  Dockerfile             # reference agent image (linux/arm64)
+  server.py              # /ping + /invocations contract
 ```

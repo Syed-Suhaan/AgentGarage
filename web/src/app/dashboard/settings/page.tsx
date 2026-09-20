@@ -42,7 +42,7 @@ export default function SettingsPage() {
               <label className="text-xs font-mono uppercase text-[#8f8f8d]">Agent ID</label>
               <input
                 type="text"
-                defaultValue="refund-agent"
+                defaultValue="sre-agent"
                 className="mt-1 h-9 w-full rounded-lg border border-dashed border-[#2a2a28] bg-[#0b0b0a] px-3 text-xs font-mono text-[#f3f3f1]"
                 readOnly
               />

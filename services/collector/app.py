@@ -45,7 +45,7 @@ def normalize(doc):
                     "duration_ms": _duration_ms(sp),
                 })
     return {
-        "agent_id": agent_id or "refund-agent",
+        "agent_id": agent_id or "sre-agent",
         "agent_version": agent_version or "1.8.2",
         "prompt_hash": prompt_hash or "sha256:demo",
         "spans": spans,

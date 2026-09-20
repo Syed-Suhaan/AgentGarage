@@ -37,21 +37,21 @@ interface BehaviourGraphProps {
   graph?: AgentGraph;
 }
 
-function BehaviourGraphInner({}: BehaviourGraphProps) {
+function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
   const [layoutMode, setLayoutMode] = useState<"force" | "LR" | "TB">("force");
-  const [selectedNodeId, setSelectedNodeId] = useState<string>("refund_pending");
+  const [selectedNodeId, setSelectedNodeId] = useState<string>("rollback_succeeded");
   const [filterKind, setFilterKind] = useState<FilterKind>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [timeRange, setTimeRange] = useState("Last 7 days");
-  const [agentName, setAgentName] = useState("Customer Support Agent");
+  const [agentName, setAgentName] = useState("sre-agent");
 
   const { fitView, setCenter } = useReactFlow();
 
   // Compute graph nodes and edges
   const { nodes: rawNodes, edges: rawEdges } = useMemo(
-    () => layoutGraph(undefined, layoutMode),
-    [layoutMode]
+    () => layoutGraph(graph && graph.nodes.length ? graph : undefined, layoutMode),
+    [layoutMode, graph]
   );
 
   // Filter edges based on selected filter pill
@@ -108,7 +108,7 @@ function BehaviourGraphInner({}: BehaviourGraphProps) {
   }, [nodes, selectedNodeId, setCenter, fitView]);
 
   const activeNodeMeta: ReferenceNodeMetadata =
-    AGENTGARAGE_NODES[selectedNodeId] || AGENTGARAGE_NODES.refund_pending;
+    AGENTGARAGE_NODES[selectedNodeId] || AGENTGARAGE_NODES.rollback_succeeded;
 
   return (
     <div className="flex h-full w-full flex-col bg-[#080808] text-[#f3f3f1] overflow-hidden select-none font-sans">

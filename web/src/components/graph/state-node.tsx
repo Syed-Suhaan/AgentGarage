@@ -40,7 +40,7 @@ const ICON_MAP: Record<string, typeof CreditCard> = {
 
 function StateNodeComponent({ data, selected }: NodeProps) {
   const meta = data as unknown as ReferenceNodeMetadata;
-  const isSelected = selected || meta.id === "refund_pending";
+  const isSelected = selected || meta.id === "rollback_succeeded";
   const isFailure = meta.isFailure;
 
   const Icon = ICON_MAP[meta.iconName] || CreditCard;

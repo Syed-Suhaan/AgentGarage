@@ -8,7 +8,7 @@ interface TopbarProps {
 }
 
 export function Topbar({
-  agentId = "refund-agent",
+  agentId = "sre-agent",
   coveragePercent,
 }: TopbarProps) {
   return (

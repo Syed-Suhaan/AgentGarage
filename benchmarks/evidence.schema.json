@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "required": [
+    "platform",
+    "incident_id",
+    "track",
+    "started_at",
+    "ended_at",
+    "funnel",
+    "manual_interventions"
+  ],
+  "properties": {
+    "platform": { "type": "string" },
+    "platform_version": { "type": "string" },
+    "incident_id": { "type": "string" },
+    "track": { "type": "string", "enum": ["unknown-path", "known-test"] },
+    "seed": { "type": "integer" },
+    "started_at": { "type": "string" },
+    "ended_at": { "type": "string" },
+    "budget_used_usd": { "type": "number" },
+    "manual_interventions": { "type": "integer" },
+    "notes": { "type": "string" },
+    "funnel": {
+      "type": "object",
+      "required": [
+        "incidents_discovered",
+        "scenarios_proposed",
+        "failures_reproduced",
+        "evals_created",
+        "fixes_verified"
+      ],
+      "properties": {
+        "incidents_discovered": { "type": ["boolean", "null"] },
+        "scenarios_proposed": { "type": ["boolean", "null"] },
+        "failures_reproduced": { "type": ["boolean", "null"] },
+        "evals_created": { "type": ["boolean", "null"] },
+        "fixes_verified": { "type": ["boolean", "null"] }
+      }
+    },
+    "evidence": { "type": "object" },
+    "vulnerable_result": { "type": ["object", "null"] },
+    "fixed_result": { "type": ["object", "null"] }
+  }
+}

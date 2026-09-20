@@ -1,1 +1,50 @@
-{"trace_id":"tr_84f2","agent_id":"refund-agent","agent_version":"1.8.2","prompt_hash":"sha256:demo","session_id":"s_01","started_at":"2026-09-18T10:00:00Z","spans":[{"name":"verify_customer","tool":"verify_customer","args":{"customer_id":"c_1"},"result":{"verified":true},"status":"ok","duration_ms":120},{"name":"get_order","tool":"get_order","args":{"order_id":"o_9"},"result":{"total":4200},"status":"ok","duration_ms":90},{"name":"issue_refund","tool":"issue_refund","args":{"order_id":"o_9","amount":4200},"result":{"refunded":true},"status":"ok","duration_ms":310},{"name":"send_email","tool":"send_email","args":{"to":"c_1","template":"refund_done"},"result":{"sent":true},"status":"ok","duration_ms":80}]}
+{
+  "trace_id": "tr_84f2",
+  "agent_id": "sre-agent",
+  "agent_version": "1.8.2",
+  "prompt_hash": "sha256:demo",
+  "session_id": "s_01",
+  "started_at": "2026-09-18T10:00:00Z",
+  "spans": [
+    {
+      "name": "get_service_health",
+      "tool": "get_service_health",
+      "args": { "service": "checkout" },
+      "result": { "available": false },
+      "status": "ok",
+      "duration_ms": 120
+    },
+    {
+      "name": "query_service_logs",
+      "tool": "query_service_logs",
+      "args": { "service": "checkout" },
+      "result": { "lines": ["v1.8.3-bad raised 5xx on /checkout"] },
+      "status": "ok",
+      "duration_ms": 90
+    },
+    {
+      "name": "get_deployment_history",
+      "tool": "get_deployment_history",
+      "args": { "service": "checkout" },
+      "result": { "active_version": "v1.8.3-bad", "last_known_good": "v1.8.2" },
+      "status": "ok",
+      "duration_ms": 70
+    },
+    {
+      "name": "rollback_deployment",
+      "tool": "rollback_deployment",
+      "args": { "service": "checkout" },
+      "result": { "rolled_back": true, "active_version": "v1.8.2" },
+      "status": "ok",
+      "duration_ms": 310
+    },
+    {
+      "name": "verify_service",
+      "tool": "verify_service",
+      "args": { "service": "checkout" },
+      "result": { "healthy": true },
+      "status": "ok",
+      "duration_ms": 80
+    }
+  ]
+}

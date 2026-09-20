@@ -1,4 +1,6 @@
 """API Gateway + Cognito + real services/api Lambda for dashboard routes."""
+import os
+
 import aws_cdk as cdk
 from aws_cdk import (
     aws_apigateway as apigw,
@@ -20,6 +22,7 @@ class Api(cdk.NestedStack):
         graph,
         orchestration,
         compute,
+        agentcore=None,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -60,7 +63,12 @@ class Api(cdk.NestedStack):
             "NEPTUNE_ENDPOINT": graph.cluster_endpoint,
             "STATE_MACHINE_ARN": orchestration.state_machine.state_machine_arn,
             "BEDROCK_MODEL_ID": compute.bedrock_model_id,
-            "BEDROCK_REGION": cdk.Stack.of(self).region,
+            "BEDROCK_REGION": compute.bedrock_region,
+            "AGENTCORE_RUNTIME_ARN": agentcore.runtime_arn if agentcore is not None else "",
+            "AGENTCORE_REGION": cdk.Stack.of(self).region,
+            # Optional: set via console/CLI. Empty → heuristic risk ranking.
+            "TYPESAFE_API_KEY": os.environ.get("TYPESAFE_API_KEY", ""),
+            "JEV_MODEL": os.environ.get("JEV_MODEL", "jev-latest"),
         }
 
         api_fn = _lambda.Function(
@@ -87,12 +95,20 @@ class Api(cdk.NestedStack):
                 resources=["*"],
             )
         )
+        if agentcore is not None:
+            api_fn.add_to_role_policy(
+                iam.PolicyStatement(
+                    actions=["bedrock-agentcore:InvokeAgentRuntime"],
+                    resources=[agentcore.runtime_arn],
+                )
+            )
         api_fn.add_to_role_policy(
             iam.PolicyStatement(
                 actions=[
                     "neptune-db:connect",
                     "neptune-db:ReadDataViaQuery",
                     "neptune-db:WriteDataViaQuery",
+                    "neptune-db:DeleteDataViaQuery",
                 ],
                 resources=["*"],
             )
@@ -114,6 +130,9 @@ class Api(cdk.NestedStack):
         _route(agent_id.add_resource("graph"), "GET", query_fn)
         _route(agent_id.add_resource("unexplored"), "GET", query_fn)
         _route(agent_id.add_resource("simulate"), "POST", simulate_fn)
+        scenarios_res = agent_id.add_resource("scenarios")
+        _route(scenarios_res, "GET", api_fn)
+        _route(scenarios_res.add_resource("next"), "GET", api_fn)
 
         scenarios = self.api.root.add_resource("scenarios")
         _route(scenarios.add_resource("{id}").add_resource("sandbox"), "POST", api_fn)

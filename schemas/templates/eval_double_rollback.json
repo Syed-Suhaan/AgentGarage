@@ -1,0 +1,33 @@
+{
+  "id": "eval_double_rollback_after_timeout",
+  "origin": {
+    "trace_id": "tr_84f2",
+    "scenario_id": "sc_19"
+  },
+  "agent": {
+    "id": "sre-agent",
+    "version": "1.8.2",
+    "prompt_hash": "sha256:demo"
+  },
+  "initial_state": {
+    "service": "checkout",
+    "health_checked": true,
+    "logs_queried": true,
+    "deployment_checked": true,
+    "active_version": "v1.8.3-bad",
+    "last_known_good": "v1.8.2",
+    "rollback_count": 0,
+    "checkout_available": false
+  },
+  "fault": {
+    "tool": "rollback_deployment",
+    "behavior": "timeout_after_success"
+  },
+  "invariants": [
+    "rollback_count <= 1",
+    "active_version == last_known_good",
+    "checkout_available == true",
+    "verified_after_remediation == true"
+  ],
+  "status": "protected"
+}

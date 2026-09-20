@@ -1,0 +1,6 @@
+{
+  "id": "inc_03_partial_rollout",
+  "name": "partial deployment state",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable"
+}

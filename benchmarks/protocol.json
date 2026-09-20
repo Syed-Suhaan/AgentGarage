@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "agent_id": "sre-agent",
+  "tracks": ["unknown-path", "known-test"],
+  "platforms": ["langsmith", "langfuse", "braintrust", "promptfoo", "agentgarage"],
+  "budget": {
+    "setup_minutes": 60,
+    "model_usd": 25,
+    "sandbox_runs": 20
+  },
+  "funnel": [
+    "incidents_discovered",
+    "scenarios_proposed",
+    "failures_reproduced",
+    "evals_created",
+    "fixes_verified"
+  ],
+  "scoring": {
+    "0": "not found",
+    "1": "suspicious trace or anomaly",
+    "2": "failure scenario proposed",
+    "3": "failure reproduced against the real agent",
+    "4": "executable regression eval created",
+    "5": "eval fails before the fix and passes after it"
+  }
+}

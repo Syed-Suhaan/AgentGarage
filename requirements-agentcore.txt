@@ -1,0 +1,4 @@
+# AgentCore runtime image (boto3 is in the base Lambda runtime, not here;
+# the container needs strands + Bedrock access via its execution role).
+strands-agents>=1.56.0
+boto3>=1.34

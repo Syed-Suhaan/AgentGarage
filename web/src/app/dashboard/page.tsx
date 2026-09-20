@@ -1,5 +1,6 @@
 "use client";
 
+import { DEMO_AGENT_ID } from "@/lib/agent";
 import { useGraph } from "@/lib/hooks/use-graph";
 import { useEvals } from "@/lib/hooks/use-evals";
 import {
@@ -22,7 +23,7 @@ import Link from "next/link";
 import type { EdgeKind } from "@/lib/types";
 
 export default function DashboardOverview() {
-  const { data: graph } = useGraph("refund-agent");
+  const { data: graph } = useGraph(DEMO_AGENT_ID);
   const { data: evalsData } = useEvals();
 
   // Calculate coverage metrics

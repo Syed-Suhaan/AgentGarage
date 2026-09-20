@@ -62,11 +62,20 @@ export interface Scenario {
   hypothesis: string;
   initial_state: Record<string, unknown>;
   status: "predicted" | "verified" | "protected";
+  risk_score?: number;
+  failure_likelihood?: number;
+  blast_radius?: number;
+  jev_confidence?: number;
+  rank_source?: string;
 }
 
 // --- Sandbox ---
 export interface SandboxInvariants {
-  refund_calls?: number;
+  rollback_count?: number;
+  active_version?: string;
+  last_known_good?: string;
+  checkout_available?: boolean;
+  verified_after_remediation?: boolean;
   passed: boolean;
   [key: string]: unknown;
 }

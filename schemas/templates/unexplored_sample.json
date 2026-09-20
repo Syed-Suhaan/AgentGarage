@@ -1,1 +1,12 @@
-[{"unexplored_state":"refund_succeeded","untried_action":"tool_timeout","support_traces":["tr_84f2"]},{"state":"refund_pending","untried_action":"duplicate_callback","support_traces":["tr_84f2"]}]
+[
+  {
+    "unexplored_state": "rollback_succeeded",
+    "untried_action": "tool_timeout",
+    "support_traces": ["tr_84f2"]
+  },
+  {
+    "state": "bad_deployment_identified",
+    "untried_action": "duplicate_callback",
+    "support_traces": ["tr_84f2"]
+  }
+]

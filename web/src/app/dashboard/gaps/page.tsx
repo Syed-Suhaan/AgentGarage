@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEMO_AGENT_ID } from "@/lib/agent";
 import { useUnexplored } from "@/lib/hooks/use-unexplored";
 import { useSimulate } from "@/lib/hooks/use-scenarios";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils";
 const DANGER_METADATA: Record<string, { severity: "critical" | "high" | "medium"; risk: string; badge: string }> = {
   tool_timeout: {
     severity: "critical",
-    risk: "Timeout after success triggers automated retry → duplicate refund risk",
+    risk: "Timeout after success triggers automated retry → double rollback past last-known-good",
     badge: "CRITICAL DANGER",
   },
   duplicate_callback: {
@@ -24,7 +25,7 @@ const DANGER_METADATA: Record<string, { severity: "critical" | "high" | "medium"
   },
   mid_run_403: {
     severity: "high",
-    risk: "Mid-execution permission revocation leaves dangling order hold",
+    risk: "Mid-execution permission revocation leaves checkout on the bad deploy",
     badge: "HIGH DANGER",
   },
   http_500: {
@@ -35,8 +36,8 @@ const DANGER_METADATA: Record<string, { severity: "critical" | "high" | "medium"
 };
 
 export default function GapsPage() {
-  const { data: gaps, isLoading, dataUpdatedAt } = useUnexplored("refund-agent");
-  const simulate = useSimulate("refund-agent");
+  const { data: gaps, isLoading, dataUpdatedAt } = useUnexplored(DEMO_AGENT_ID);
+  const simulate = useSimulate(DEMO_AGENT_ID);
 
   // Real-time telemetry: poll-driven live stats with smooth drift.
   // Baselines come from the coverage snapshot; each tick simulates the

@@ -88,6 +88,7 @@ class Graph(cdk.NestedStack):
                     "neptune-db:connect",
                     "neptune-db:ReadDataViaQuery",
                     "neptune-db:WriteDataViaQuery",
+                    "neptune-db:DeleteDataViaQuery",
                 ],
                 resources=["*"],
             )
@@ -114,6 +115,7 @@ class Graph(cdk.NestedStack):
                     "neptune-db:connect",
                     "neptune-db:ReadDataViaQuery",
                     "neptune-db:WriteDataViaQuery",
+                    "neptune-db:DeleteDataViaQuery",
                 ],
                 resources=["*"],
             )

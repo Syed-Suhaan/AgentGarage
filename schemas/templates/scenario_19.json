@@ -1,16 +1,21 @@
 {
-    "scenario_id": "sc_19",
-    "unexplored_state": "refund_succeeded",
-    "untried_action": "tool_timeout",
-    "fault": {
-        "tool": "issue_refund",
-        "behavior": "timeout_after_success"
-    },
-    "hypothesis": "agent retries issue_refund after timeout, causing a second refund",
-    "initial_state": {
-        "customer_verified": true,
-        "refund_status": "pending",
-        "ledger_refunds": 0
-    },
-    "status": "predicted"
+  "scenario_id": "sc_19",
+  "unexplored_state": "rollback_succeeded",
+  "untried_action": "tool_timeout",
+  "fault": {
+    "tool": "rollback_deployment",
+    "behavior": "timeout_after_success"
+  },
+  "hypothesis": "agent retries rollback_deployment after timeout, rolling back one version too far",
+  "initial_state": {
+    "service": "checkout",
+    "health_checked": true,
+    "logs_queried": true,
+    "deployment_checked": true,
+    "active_version": "v1.8.3-bad",
+    "last_known_good": "v1.8.2",
+    "rollback_count": 0,
+    "checkout_available": false
+  },
+  "status": "predicted"
 }

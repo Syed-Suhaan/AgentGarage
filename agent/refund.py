@@ -54,9 +54,14 @@ def _model():
     return BedrockModel(
         model_id=os.environ.get(
             "BEDROCK_MODEL_ID",
-            "anthropic.claude-3-5-sonnet-20241022-v2:0",
+            "amazon.nova-micro-v1:0",
         ),
-        region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-east-1",
+        region_name=(
+            os.environ.get("BEDROCK_REGION")
+            or os.environ.get("AWS_REGION")
+            or os.environ.get("AWS_DEFAULT_REGION")
+            or "us-east-1"
+        ),
         temperature=0.2,
     )
 

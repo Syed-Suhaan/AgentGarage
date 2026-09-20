@@ -28,7 +28,15 @@ class Frontend(cdk.NestedStack):
             )
 
         self.client = cognito.UserPoolClient(
-            self, "Client", user_pool=self.pool, generate_secret=False
+            self,
+            "Client",
+            user_pool=self.pool,
+            generate_secret=False,
+            auth_flows=cognito.AuthFlow(
+                user_password=True,
+                user_srp=True,
+                admin_user_password=True,
+            ),
         )
 
         # Amplify (AWS::Amplify::App) is not in every region (e.g. ap-south-2).

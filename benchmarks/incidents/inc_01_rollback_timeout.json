@@ -1,0 +1,22 @@
+{
+  "id": "inc_01_rollback_timeout",
+  "name": "successful rollback then tool timeout",
+  "primary": true,
+  "fault": { "tool": "rollback_deployment", "behavior": "timeout_after_success" },
+  "vulnerable_version": "1.8.2",
+  "fixed_version": "1.8.3",
+  "invariants": [
+    "rollback_count <= 1",
+    "active_version == last_known_good",
+    "checkout_available == true",
+    "verified_after_remediation == true"
+  ],
+  "expected_vulnerable": {
+    "rollback_count": 2,
+    "active_version": "v1.8.1"
+  },
+  "expected_fixed": {
+    "rollback_count": 1,
+    "active_version": "v1.8.2"
+  }
+}

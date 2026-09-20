@@ -47,21 +47,21 @@ const PHASES = [
     kicker: "Predicted",
     title: "Flag reachable paths\nit never tried.",
     desc: "Legal state-action pairs with no observed run are scored by risk and novelty.",
-    detail: "refund_succeeded + tool_timeout · sc_19",
+    detail: "rollback_succeeded + tool_timeout · sc_19",
     palette: "violet" as const,
   },
   {
     kicker: "Verified",
     title: "Replay hypotheses\nagainst the real agent.",
     desc: "One isolated sandbox per scenario. Fixed rule checks move predicted to verified — never a model’s word.",
-    detail: "sb_07 · refund_calls = 2 · FAIL",
+    detail: "sb_07 · rollback_count = 2 · FAIL",
     palette: "blue" as const,
   },
   {
     kicker: "Protected",
     title: "Keep every failure\nas a permanent eval.",
     desc: "Verified failures compile to portable YAML evals re-run on every future version.",
-    detail: "eval_duplicate_refund · protected",
+    detail: "eval_double_rollback · protected",
     palette: "sun" as const,
   },
 ];
@@ -69,8 +69,8 @@ const PHASES = [
 const PILLARS = [
   { k: "Observe", t: "Production-grounded map, not a trace viewer.", d: "States and edges with counts, versions and sources." },
   { k: "Hypothesize", t: "World-model proposals, explicitly unconfirmed.", d: "Predicted stays grey until the sandbox reproduces it." },
-  { k: "Isolate", t: "Fargate sandboxes with no network.", d: "Restore state, inject one fault, run the same agent." },
-  { k: "Enforce", t: "Evals that block silent regressions.", d: "Assert-first checks like refund_calls <= 1." },
+  { k: "Isolate", t: "AgentCore microVM sandboxes with no internet.", d: "Restore state, inject one fault, run the same agent." },
+  { k: "Enforce", t: "Evals that block silent regressions.", d: "Assert-first checks like rollback_count <= 1." },
 ];
 
 function PhaseSection({ p, index }: { p: (typeof PHASES)[number]; index: number }) {
@@ -279,7 +279,7 @@ export default function LandingPage() {
       <section className="border-b border-white/5 py-14">
         <p className="text-center text-xs text-zinc-500">Runs inside your AWS account — same primitives you already trust</p>
         <div className="mx-auto mt-6 flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-medium text-zinc-500">
-          {["S3", "DynamoDB", "OpenSearch", "Fargate", "Step Functions", "Bedrock", "CDK", "Next.js"].map((t) => (
+          {["S3", "DynamoDB", "Neptune", "AgentCore", "Step Functions", "Bedrock", "CDK", "Next.js"].map((t) => (
             <span key={t} className="hover:text-zinc-300 transition-colors">{t}</span>
           ))}
         </div>
@@ -308,7 +308,7 @@ export default function LandingPage() {
           <div>
             <p className="text-xs text-zinc-500">Judge proof · live</p>
             <p className="mt-2 font-mono text-5xl font-medium text-white">2</p>
-            <p className="text-sm text-zinc-500">refunds on the timeout path</p>
+            <p className="text-sm text-zinc-500">rollbacks on the timeout path</p>
             <p className="mt-6 font-mono text-5xl font-medium text-white">1</p>
             <p className="text-sm text-zinc-500">permanent eval written</p>
           </div>
@@ -317,11 +317,11 @@ export default function LandingPage() {
               <Terminal className="h-4 w-4 text-blue-400" /> Sandbox sb_07 — streaming
             </div>
             <div className="space-y-2 p-4 font-mono text-xs leading-relaxed bg-[#0c0c0b]">
-              <p className="text-zinc-500">&gt; restoring refund_pending state</p>
-              <p className="text-zinc-400">&gt; injecting issue_refund → timeout_after_success</p>
-              <p className="text-blue-400">&gt; issue_refund → SUCCESS but TIMEOUT to agent</p>
-              <p className="text-red-400">&gt; issue_refund RETRY — duplicate refund</p>
-              <p className="text-red-400">&gt; INVARIANT FAIL: refund_calls = 2 (expected ≤ 1)</p>
+              <p className="text-zinc-500">&gt; restoring degraded checkout snapshot</p>
+              <p className="text-zinc-400">&gt; injecting rollback_deployment → timeout_after_success</p>
+              <p className="text-blue-400">&gt; rollback_deployment → SUCCESS but TIMEOUT to agent</p>
+              <p className="text-red-400">&gt; rollback_deployment RETRY — rolled back too far</p>
+              <p className="text-red-400">&gt; INVARIANT FAIL: rollback_count = 2 (expected ≤ 1)</p>
             </div>
             <div className="flex gap-2 border-t border-white/10 p-4 bg-[#111]">
               <Link href="/dashboard/sandboxes/sb_07" className="inline-flex items-center gap-1 rounded-full border border-white/15 px-4 py-2 text-xs text-zinc-200 hover:border-white/30 transition-all">

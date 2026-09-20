@@ -1,0 +1,6 @@
+{
+  "id": "inc_08_unsafe_failover",
+  "name": "unsafe database failover",
+  "primary": false,
+  "status": "deferred_until_vertical_slice_stable"
+}

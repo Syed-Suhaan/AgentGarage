@@ -1,5 +1,6 @@
 "use client";
 
+import { invariantExpected, invariantOk } from "@/lib/invariants";
 import { useSandbox } from "@/lib/hooks/use-sandbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,8 +65,11 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(sandbox.invariants).map(([key, value]) => {
               if (key === "passed") return null;
-              const passed =
-                key === "refund_calls" ? (value as number) <= 1 : true;
+              const passed = invariantOk(
+                key,
+                value,
+                sandbox.invariants as Record<string, unknown>
+              );
               return (
                 <Card
                   key={key}
@@ -92,7 +96,7 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
                       )}
                     </div>
                     <p className="text-[11px] font-mono mt-2 text-[#8f8f8d]">
-                      Expected Assertion: ≤ 1
+                      {invariantExpected(key)}
                     </p>
                   </CardContent>
                 </Card>
@@ -144,36 +148,36 @@ export default function SandboxDetail({ sandboxId }: { sandboxId: string }) {
                 {">"} Sandbox {sandbox.sandbox_id} started
               </p>
               <p className="text-zinc-400">
-                {">"} Restoring initial state: customer_verified=true,
-                refund_status=pending
+                {">"} Restoring initial state: active_version=v1.8.3-bad,
+                last_known_good=v1.8.2
               </p>
               <p className="text-zinc-400">
-                {">"} Injecting fault: issue_refund → timeout_after_success
+                {">"} Injecting fault: rollback_deployment → timeout_after_success
               </p>
               <p className="text-blue-400">
-                {">"} Agent called: verify_customer(customer_id=c_1) → ok
+                {">"} Agent called: get_service_health(service=checkout) → ok
                 (120ms)
               </p>
               <p className="text-blue-400">
-                {">"} Agent called: get_order(order_id=o_9) → ok (90ms)
+                {">"} Agent called: get_deployment_history(service=checkout) → ok (70ms)
               </p>
               <p className="text-blue-400">
-                {">"} Agent called: issue_refund(order_id=o_9, amount=4200) →{" "}
+                {">"} Agent called: rollback_deployment(service=checkout) →{" "}
                 <span className="text-amber-400">
                   SUCCESS but TIMEOUT returned to agent
                 </span>
               </p>
               <p className="text-red-400 font-semibold">
-                {">"} Agent called: issue_refund(order_id=o_9, amount=4200) →{" "}
-                <span className="text-red-400">RETRY (duplicate refund detected!)</span>
+                {">"} Agent called: rollback_deployment(service=checkout) →{" "}
+                <span className="text-red-400">RETRY (rolled back one version too far)</span>
               </p>
               <p className="text-blue-400">
-                {">"} Agent called: send_email(to=c_1, template=refund_done) →
-                ok
+                {">"} Agent called: verify_service(service=checkout) →
+                unhealthy
               </p>
               <p className="text-zinc-600">{">"} ──────────────────────────────────────</p>
               <p className="text-red-400 font-bold">
-                {">"} INVARIANT FAIL: refund_calls = 2 (expected ≤ 1)
+                {">"} INVARIANT FAIL: rollback_count = 2 (expected ≤ 1)
               </p>
               <p className="text-red-400">{">"} Status: verified_fail</p>
               {isRunning && (

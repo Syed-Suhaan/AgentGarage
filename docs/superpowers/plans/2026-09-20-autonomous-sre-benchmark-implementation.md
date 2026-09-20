@@ -281,11 +281,11 @@ that it fails on `1.8.2`, and that it passes on the fixed version.
 
 ### Work
 
-1. Seed clean runs through `agent.sre.run`.
+1. Seed clean runs through AgentCore Runtime (`POST /demo/seed`).
 2. Change domain defaults to `sre-agent`.
 3. Keep API routes generic: `/agent/{id}/graph`,
    `/agent/{id}/unexplored`, `/scenarios/{id}/sandbox`, and `/evals`.
-4. Keep Step Functions, Fargate, S3, DynamoDB, OpenSearch, and API Gateway
+4. Keep Step Functions, AgentCore Runtime, S3, DynamoDB, Neptune, and API Gateway
    structure unchanged.
 5. Update the live-flow script to assert the SRE frontier, double rollback,
    protected eval, and fixed-version pass.

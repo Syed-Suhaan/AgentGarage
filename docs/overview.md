@@ -6,4 +6,4 @@ AgentGarage maps which behaviours an agent has actually exercised, finds reachab
 
 One rule governs the whole system: a predicted failure is a hypothesis until the real agent reproduces it. No path is marked failed on a model's word.
 
-The demo agent is autonomous. It gets a goal and four tools, no fixed script. Its branching is real, so the map it produces is real.
+The demo agent is an autonomous AWS SRE remediator. It gets a goal and five tools, no fixed script. Its branching is real, so the map it produces is real.

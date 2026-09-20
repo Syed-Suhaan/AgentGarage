@@ -1,1 +1,54 @@
-{"nodes":[{"id":"customer_verified","label":"customer_verified"},{"id":"refund_pending","label":"refund_pending"},{"id":"refund_succeeded","label":"refund_succeeded"}],"edges":[{"from":"customer_verified","action":"get_order","to":"refund_pending","kind":"observed","source":"tr_84f2"},{"from":"refund_pending","action":"issue_refund","to":"refund_succeeded","kind":"observed","source":"tr_84f2"},{"from":"refund_succeeded","action":"tool_timeout","to":"unknown","kind":"predicted","source":"sc_19"}]}
+{
+  "nodes": [
+    { "id": "service_degraded", "label": "service_degraded" },
+    { "id": "health_inspected", "label": "health_inspected" },
+    { "id": "logs_queried", "label": "logs_queried" },
+    { "id": "bad_deployment_identified", "label": "bad_deployment_identified" },
+    { "id": "rollback_succeeded", "label": "rollback_succeeded" },
+    { "id": "service_restored", "label": "service_restored" }
+  ],
+  "edges": [
+    {
+      "from": "service_degraded",
+      "action": "get_service_health",
+      "to": "health_inspected",
+      "kind": "observed",
+      "source": "tr_84f2"
+    },
+    {
+      "from": "health_inspected",
+      "action": "query_service_logs",
+      "to": "logs_queried",
+      "kind": "observed",
+      "source": "tr_84f2"
+    },
+    {
+      "from": "logs_queried",
+      "action": "get_deployment_history",
+      "to": "bad_deployment_identified",
+      "kind": "observed",
+      "source": "tr_84f2"
+    },
+    {
+      "from": "bad_deployment_identified",
+      "action": "rollback_deployment",
+      "to": "rollback_succeeded",
+      "kind": "observed",
+      "source": "tr_84f2"
+    },
+    {
+      "from": "rollback_succeeded",
+      "action": "verify_service",
+      "to": "service_restored",
+      "kind": "observed",
+      "source": "tr_84f2"
+    },
+    {
+      "from": "rollback_succeeded",
+      "action": "tool_timeout",
+      "to": "unknown",
+      "kind": "predicted",
+      "source": "sc_19"
+    }
+  ]
+}

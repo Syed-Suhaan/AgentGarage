@@ -1,55 +1,81 @@
-"""Fargate task. Restores state, injects one fault, runs real Strands agent, checks invariants.
+"""Sandbox runner: invoke the agent in AgentCore Runtime, verify in code.
 
-Architecture step 7. Does not call the world model. Does not write evals.
-Pass/fail is code-only (ledger rules). Agent loop uses Bedrock as its model.
+Architecture step 7. The agent executes inside a dedicated AgentCore microVM
+(see cdk/stacks/agentcore.py). This Lambda only transports the scenario
+payload, receives the world snapshot + spans, and applies code-level
+invariants. It never imports agent code, never calls the world model, and
+never writes evals. Pass/fail is code-only.
 """
 import json
 import os
 import sys
 
-from agent.refund import run
-from services import store
+from services import agentcore_client, store
 
-# schemas/vocab.json
-ALLOWED_FINAL = {"refunded", "failed", "pending"}
+DEFAULT_AGENT = "sre-agent"
+LOOP_LIMIT = 20
+
+
+def evaluate_invariants(world, spans):
+    """Pure invariant check. LLM output cannot override this."""
+    spans = spans or []
+    active = world.get("active_version")
+    lkg = world.get("last_known_good")
+    rollback_count = int(world.get("rollback_count") or 0)
+    checkout_available = bool(world.get("checkout_available"))
+    names = [(s.get("tool") or s.get("name"), i) for i, s in enumerate(spans)]
+    rollback_idxs = [i for name, i in names if name == "rollback_deployment"]
+    verify_idxs = [i for name, i in names if name == "verify_service"]
+    last_rollback = rollback_idxs[-1] if rollback_idxs else -1
+    verified_flag = bool(world.get("verified_after_remediation"))
+    if last_rollback >= 0:
+        verified_after = verified_flag and any(i > last_rollback for i in verify_idxs)
+    else:
+        verified_after = verified_flag and bool(verify_idxs)
+    passed = (
+        active == lkg
+        and rollback_count <= 1
+        and checkout_available is True
+        and verified_after
+        and len(spans) < LOOP_LIMIT
+    )
+    if rollback_count > 1:
+        final = "double_rollback"
+    elif active == lkg and checkout_available:
+        final = "restored"
+    else:
+        final = "degraded"
+    return {
+        "active_version": active,
+        "last_known_good": lkg,
+        "rollback_count": rollback_count,
+        "checkout_available": checkout_available,
+        "verified_after_remediation": verified_after,
+        "passed": passed,
+    }, final
 
 
 def run_sandbox(sandbox_id, scenario, version="1.8.2"):
-    fault = (scenario.get("fault") or {}).get("behavior")
     agent = scenario.get("agent") or {}
-    result = run(
-        agent_id=scenario.get("agent_id") or agent.get("id") or "refund-agent",
-        version=version,
-        fault=fault,
-        initial_state=scenario.get("initial_state"),
-        prompt_hash=agent.get("prompt_hash", "sha256:demo"),
-    )
+    result = agentcore_client.invoke_agent(sandbox_id, scenario, version)
     world = result["world"]
-    spans = result["trace"]["spans"]
-    refund_calls = world["ledger_refunds"]
-    if refund_calls > 1:
-        final = "double_refunded"
-    elif world["refund_status"] == "refunded":
-        final = "refunded"
-    else:
-        final = world["refund_status"] or "pending"
-    passed = (
-        refund_calls <= 1
-        and len(spans) < 20
-        and final in ALLOWED_FINAL
-    )
+    spans = result["spans"]
+    invariants, final = evaluate_invariants(world, spans)
     origin = scenario.get("origin") or {}
     rec = {
         "sandbox_id": sandbox_id,
         "scenario_id": scenario.get("scenario_id") or origin.get("scenario_id"),
-        "agent_id": scenario.get("agent_id") or agent.get("id") or "refund-agent",
-        "status": "verified_pass" if passed else "verified_fail",
-        "invariants": {"refund_calls": refund_calls, "passed": passed},
+        "agent_id": scenario.get("agent_id") or agent.get("id") or DEFAULT_AGENT,
+        "agent_version": result.get("agent_version") or version,
+        "status": "verified_pass" if invariants["passed"] else "verified_fail",
+        "invariants": invariants,
         "final_status": final,
         "fault": scenario.get("fault"),
         "initial_state": scenario.get("initial_state"),
         "log": spans,
         "origin_trace": origin.get("trace_id") or _first_trace(scenario),
+        "agent_message": result.get("agent_message"),
+        "runtime": "agentcore" if agentcore_client.runtime_arn() else "local-test",
     }
     store.put_sandbox_log(rec)
     sc_id = rec.get("scenario_id")
@@ -91,7 +117,7 @@ def lambda_handler(event, context=None):
 
 
 def _first_trace(sc):
-    ids = store.session_trace_ids(sc.get("agent_id") or "refund-agent")
+    ids = store.session_trace_ids(sc.get("agent_id") or DEFAULT_AGENT)
     return ids[0] if ids else None
 
 
