@@ -65,8 +65,8 @@ export function layoutGraph(
       id: node.id,
       type: "stateNode",
       position: {
-        x: node.position.x * 1.6,
-        y: node.position.y * 1.15,
+        x: node.position.x,
+        y: node.position.y,
       },
       data: node as unknown as Record<string, unknown>,
     }));
@@ -75,6 +75,8 @@ export function layoutGraph(
       id: edge.id,
       source: edge.from,
       target: edge.to,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
       type: "actionEdge",
       animated: edge.kind === "predicted",
       data: {
@@ -120,6 +122,8 @@ export function layoutGraph(
     id: edge.id,
     source: edge.from,
     target: edge.to,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
     type: "actionEdge",
     animated: edge.kind === "predicted",
     data: {

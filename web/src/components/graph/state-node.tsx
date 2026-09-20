@@ -21,9 +21,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { ReferenceNodeMetadata } from "@/lib/graph-reference-data";
 
-const ICON_MAP = {
+const ICON_MAP: Record<string, typeof CreditCard> = {
   UserCheck,
   MessageSquare,
+  MessageCircle: MessageSquare,
   HelpCircle,
   Database,
   FileCheck,
@@ -50,37 +51,61 @@ function StateNodeComponent({ data, selected }: NodeProps) {
       transition={{ duration: 0.2 }}
       className="relative flex items-center justify-center cursor-pointer"
     >
-      {/* 4 Connection handles for smooth multi-directional Bezier paths */}
+      {/* 4 Multi-directional handles (both target and source at each direction) */}
       <Handle
         type="target"
         id="top"
         position={Position.Top}
-        className="!w-2 !h-2 !bg-[#3b76ff]/60 !border-[#141413] !opacity-0 hover:!opacity-100"
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
+      />
+      <Handle
+        type="source"
+        id="top"
+        position={Position.Top}
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
+      />
+      <Handle
+        type="target"
+        id="bottom"
+        position={Position.Bottom}
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
       />
       <Handle
         type="source"
         id="bottom"
         position={Position.Bottom}
-        className="!w-2 !h-2 !bg-[#3b76ff]/60 !border-[#141413] !opacity-0 hover:!opacity-100"
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
       />
       <Handle
         type="target"
         id="left"
         position={Position.Left}
-        className="!w-2 !h-2 !bg-[#3b76ff]/60 !border-[#141413] !opacity-0 hover:!opacity-100"
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
+      />
+      <Handle
+        type="source"
+        id="left"
+        position={Position.Left}
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
+      />
+      <Handle
+        type="target"
+        id="right"
+        position={Position.Right}
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
       />
       <Handle
         type="source"
         id="right"
         position={Position.Right}
-        className="!w-2 !h-2 !bg-[#3b76ff]/60 !border-[#141413] !opacity-0 hover:!opacity-100"
+        className="!w-1 !h-1 !bg-transparent !border-0 !opacity-0 pointer-events-none"
       />
 
       {/* Circular Node Container */}
       <div
         className={cn(
           "relative flex flex-col items-center justify-center rounded-full transition-all duration-300 select-none",
-          "w-24 h-24 sm:w-28 sm:h-28 bg-[#0c0c0b] text-center p-2.5",
+          "w-28 h-28 bg-[#0c0c0b] text-center p-2",
           // Normal state
           "border border-[#2a2a28] shadow-lg shadow-black/80 hover:border-zinc-400",
           // Selected neon glow
@@ -105,7 +130,7 @@ function StateNodeComponent({ data, selected }: NodeProps) {
         />
 
         {/* Node Icon */}
-        <div className="relative mb-1">
+        <div className="relative mb-0.5">
           <Icon
             className={cn(
               "h-4 w-4 transition-colors",
@@ -118,20 +143,35 @@ function StateNodeComponent({ data, selected }: NodeProps) {
           />
         </div>
 
-        {/* State Label */}
-        <span
-          className={cn(
-            "relative text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-tight leading-tight px-1 max-w-[84px] sm:max-w-[96px] truncate",
-            isSelected
-              ? "text-white"
-              : isFailure
-              ? "text-red-400"
-              : "text-[#f3f3f1]"
-          )}
-          title={meta.label}
-        >
-          {meta.label}
-        </span>
+        {/* State Label: Two clean lines, No truncation, No ellipsis */}
+        <div className="relative flex flex-col items-center justify-center leading-[1.15] px-1 text-center select-none my-0.5 max-w-[96px]">
+          <span
+            className={cn(
+              "text-[10px] sm:text-[10.5px] font-mono font-bold uppercase tracking-tight whitespace-nowrap",
+              isSelected
+                ? "text-white"
+                : isFailure
+                ? "text-red-400"
+                : "text-[#f3f3f1]"
+            )}
+          >
+            {meta.line1 || meta.label}
+          </span>
+          {meta.line2 ? (
+            <span
+              className={cn(
+                "text-[10px] sm:text-[10.5px] font-mono font-bold uppercase tracking-tight whitespace-nowrap",
+                isSelected
+                  ? "text-white"
+                  : isFailure
+                  ? "text-red-400"
+                  : "text-[#f3f3f1]"
+              )}
+            >
+              {meta.line2}
+            </span>
+          ) : null}
+        </div>
 
         {/* Runs Count */}
         <span className="relative text-[9px] font-mono text-[#8f8f8d] mt-0.5">
