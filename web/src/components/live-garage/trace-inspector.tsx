@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LIVE_TRACE, getStageAtTime } from "@/lib/live-workflow";
 
 interface TraceInspectorProps {
   selectedBay?: string | null;
@@ -21,24 +22,48 @@ interface TraceInspectorProps {
   currentTime?: number;
 }
 
+async function safeCopy(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
 export function TraceInspector({
   selectedBay,
-  currentTime = 30.2,
+  currentTime = LIVE_TRACE.errorAt,
 }: TraceInspectorProps) {
   const [evidenceTab, setEvidenceTab] = useState<"raw" | "redacted" | "summary">("raw");
   const [copiedId, setCopiedId] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
 
-  const handleCopyId = () => {
-    navigator.clipboard.writeText("tr_7f3a9c2e4b1d");
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
+  const stage = getStageAtTime(currentTime);
+  const failed = currentTime >= LIVE_TRACE.errorAt;
+
+  const handleCopyId = async () => {
+    if (await safeCopy(LIVE_TRACE.traceId)) {
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
   };
 
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(rawPayload, null, 2));
-    setCopiedJson(true);
-    setTimeout(() => setCopiedJson(false), 2000);
+  const handleCopyJson = async () => {
+    if (await safeCopy(JSON.stringify(rawPayload, null, 2))) {
+      setCopiedJson(true);
+      setTimeout(() => setCopiedJson(false), 2000);
+    }
   };
 
   const rawPayload = {
@@ -104,7 +129,7 @@ Eval Gate comparison failed: expected benchmark DTC P0420 (Catalytic converter e
           <div className="flex items-center justify-between">
             <span className="uppercase text-[10px] tracking-wider text-[#71717a]">Trace ID</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[#f3f3f1] font-semibold">tr_7f3a9c2e4b1d</span>
+              <span className="text-[#f3f3f1] font-semibold">{LIVE_TRACE.traceId}</span>
               <button
                 onClick={handleCopyId}
                 className="text-[#71717a] hover:text-[#f3f3f1] transition-colors"
@@ -116,29 +141,40 @@ Eval Gate comparison failed: expected benchmark DTC P0420 (Catalytic converter e
 
           <div className="flex items-center justify-between">
             <span className="uppercase text-[10px] tracking-wider text-[#71717a]">Agent</span>
-            <span className="text-[#f3f3f1]">mechanic-bot-001</span>
+            <span className="text-[#f3f3f1]">{LIVE_TRACE.agent}</span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="uppercase text-[10px] tracking-wider text-[#71717a]">Task</span>
-            <span className="text-[#f3f3f1]">diagnose_vehicle</span>
+            <span className="text-[#f3f3f1]">{LIVE_TRACE.task}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="uppercase text-[10px] tracking-wider text-[#71717a]">Stage</span>
+            <span className="text-[#3b76ff]">{stage ? `${stage.label} (${stage.action})` : "—"}</span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="uppercase text-[10px] tracking-wider text-[#71717a]">Started</span>
-            <span className="text-[#f3f3f1]">2025-06-23 14:26:41</span>
+            <span className="text-[#f3f3f1]">{LIVE_TRACE.started}</span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="uppercase text-[10px] tracking-wider text-[#71717a]">Duration</span>
-            <span className="text-[#f3f3f1]">{currentTime.toFixed(1)}s / 37.4s</span>
+            <span className="text-[#f3f3f1]">{currentTime.toFixed(1)}s / {LIVE_TRACE.duration}s</span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="uppercase text-[10px] tracking-wider text-[#71717a]">Status</span>
-            <span className="rounded bg-red-600/20 px-2 py-0.5 text-[10px] font-bold text-red-400 border border-red-500/40 animate-pulse">
-              verified fail
-            </span>
+            {failed ? (
+              <span className="rounded bg-red-600/20 px-2 py-0.5 text-[10px] font-bold text-red-400 border border-red-500/40 animate-pulse">
+                verified fail
+              </span>
+            ) : (
+              <span className="rounded bg-emerald-600/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/40">
+                running • {stage?.label ?? ""}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-between">

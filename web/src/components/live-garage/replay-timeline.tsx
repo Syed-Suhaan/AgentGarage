@@ -9,6 +9,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TIMELINE_TRACKS, LIVE_TRACE } from "@/lib/live-workflow";
 
 interface ReplayTimelineProps {
   currentTime: number;
@@ -18,16 +19,20 @@ interface ReplayTimelineProps {
   onSeek: (time: number) => void;
   onTogglePlay: () => void;
   onChangeSpeed: (speed: 1 | 2 | 4) => void;
+  onFullscreen?: () => void;
+  onReset?: () => void;
 }
 
 export function ReplayTimeline({
   currentTime,
-  duration = 40,
+  duration = LIVE_TRACE.duration,
   isPlaying,
   playbackSpeed,
   onSeek,
   onTogglePlay,
   onChangeSpeed,
+  onFullscreen,
+  onReset,
 }: ReplayTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
 
@@ -58,25 +63,34 @@ export function ReplayTimeline({
           </div>
           <span className="text-[#2a2a28]">|</span>
           <span className="text-[11px] hidden sm:inline">
-            Task: <span className="text-[#f3f3f1]">diagnose_vehicle</span>
+            Task: <span className="text-[#f3f3f1]">{LIVE_TRACE.task}</span>
           </span>
           <span className="text-[#2a2a28] hidden sm:inline">|</span>
           <span className="text-[11px] hidden md:inline">
-            Agent: <span className="text-[#f3f3f1]">mechanic-bot-001</span>
+            Agent: <span className="text-[#f3f3f1]">{LIVE_TRACE.agent}</span>
           </span>
           <span className="text-[#2a2a28] hidden md:inline">|</span>
           <span className="text-[11px] hidden lg:inline">
-            Trace: <span className="text-[#3b76ff]">tr_7f3a9c2e4b1d</span>
+            Trace: <span className="text-[#3b76ff]">{LIVE_TRACE.traceId}</span>
           </span>
         </div>
 
         {/* Media Controls on Right */}
         <div className="flex items-center gap-1.5">
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="flex h-6 w-6 items-center justify-center rounded border border-[#2a2a28] bg-[#141413] text-[#8f8f8d] hover:text-[#f3f3f1] transition-colors"
+              title="Restart from 0s"
+            >
+              <RotateCcw className="h-3 w-3" />
+            </button>
+          )}
           {/* Play/Pause Button */}
           <button
             onClick={onTogglePlay}
             className="flex h-6 w-6 items-center justify-center rounded bg-[#181816] border border-[#2a2a28] text-[#f3f3f1] hover:bg-[#222220] transition-colors"
-            title={isPlaying ? "Pause" : "Play"}
+            title={isPlaying ? "Pause (Space)" : "Play (Space)"}
           >
             {isPlaying ? <Pause className="h-3 w-3 fill-current" /> : <Play className="h-3 w-3 fill-current ml-0.5" />}
           </button>
@@ -100,6 +114,7 @@ export function ReplayTimeline({
           </div>
 
           <button
+            onClick={onFullscreen}
             className="flex h-6 w-6 items-center justify-center rounded border border-[#2a2a28] bg-[#141413] text-[#8f8f8d] hover:text-[#f3f3f1] transition-colors"
             title="Fullscreen"
           >
@@ -115,28 +130,19 @@ export function ReplayTimeline({
           onClick={handleTimelineClick}
           className="relative cursor-pointer space-y-1 py-1"
         >
-          {/* Track 1: LLM */}
+          {/* Track 1: LLM – from backend workflow */}
           <div className="flex items-center gap-3">
             <span className="w-10 text-[10px] text-[#71717a] font-bold shrink-0">LLM</span>
             <div className="relative flex-1 h-3.5 rounded bg-[#141413] border border-[#1f1f1d] overflow-hidden">
-              {/* Segment 1: 0.5s - 6.5s */}
-              <div
-                style={{ left: `${(0.5 / duration) * 100}%`, width: `${(6.0 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#3b76ff] rounded-sm hover:brightness-125 transition-all"
-                title="LLM Call: Initial Prompt & Plan"
-              />
-              {/* Segment 2: 14.5s - 20.0s */}
-              <div
-                style={{ left: `${(14.5 / duration) * 100}%`, width: `${(5.5 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#3b76ff] rounded-sm hover:brightness-125 transition-all"
-                title="LLM Call: Tool Result Synthesis"
-              />
-              {/* Segment 3: 31.0s - 34.0s */}
-              <div
-                style={{ left: `${(31.0 / duration) * 100}%`, width: `${(3.0 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#3b76ff] rounded-sm hover:brightness-125 transition-all"
-                title="LLM Call: Final Diagnostic Emission"
-              />
+              {TIMELINE_TRACKS.llm.map((seg) => (
+                <div
+                  key={seg.label}
+                  onClick={(e) => { e.stopPropagation(); onSeek(seg.start + 0.1); }}
+                  style={{ left: `${(seg.start / duration) * 100}%`, width: `${((seg.end - seg.start) / duration) * 100}%` }}
+                  className="absolute top-0 bottom-0 bg-[#3b76ff] rounded-sm hover:brightness-125 transition-all cursor-pointer"
+                  title={seg.label}
+                />
+              ))}
             </div>
           </div>
 
@@ -144,30 +150,15 @@ export function ReplayTimeline({
           <div className="flex items-center gap-3">
             <span className="w-10 text-[10px] text-[#71717a] font-bold shrink-0">TOOLS</span>
             <div className="relative flex-1 h-3.5 rounded bg-[#141413] border border-[#1f1f1d] overflow-hidden">
-              {/* Tool 1: read_obd 4.0s - 13.0s */}
-              <div
-                style={{ left: `${(4.0 / duration) * 100}%`, width: `${(9.0 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#38bdf8] rounded-sm hover:brightness-125 transition-all"
-                title="Tool: read_obd"
-              />
-              {/* Tool 2: query_dtc 24.5s - 26.5s */}
-              <div
-                style={{ left: `${(24.5 / duration) * 100}%`, width: `${(2.0 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#38bdf8] rounded-sm hover:brightness-125 transition-all"
-                title="Tool: query_dtc_specs"
-              />
-              {/* Tool 3: eval_verdict 29.5s - 30.5s */}
-              <div
-                style={{ left: `${(29.5 / duration) * 100}%`, width: `${(1.0 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#38bdf8] rounded-sm hover:brightness-125 transition-all"
-                title="Tool: emit_verdict"
-              />
-              {/* Tool 4: 33.5s - 34.5s */}
-              <div
-                style={{ left: `${(33.5 / duration) * 100}%`, width: `${(1.0 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#38bdf8] rounded-sm hover:brightness-125 transition-all"
-                title="Tool: close_session"
-              />
+              {TIMELINE_TRACKS.tools.map((seg) => (
+                <div
+                  key={seg.label}
+                  onClick={(e) => { e.stopPropagation(); onSeek(seg.start + 0.1); }}
+                  style={{ left: `${(seg.start / duration) * 100}%`, width: `${((seg.end - seg.start) / duration) * 100}%` }}
+                  className="absolute top-0 bottom-0 bg-[#38bdf8] rounded-sm hover:brightness-125 transition-all cursor-pointer"
+                  title={seg.label}
+                />
+              ))}
             </div>
           </div>
 
@@ -175,30 +166,20 @@ export function ReplayTimeline({
           <div className="flex items-center gap-3">
             <span className="w-10 text-[10px] text-[#71717a] font-bold shrink-0">ENV</span>
             <div className="relative flex-1 h-3.5 rounded bg-[#141413] border border-[#1f1f1d] overflow-hidden">
-              {/* Env 1: Sandbox spin up 2.5s - 4.0s */}
-              <div
-                style={{ left: `${(2.5 / duration) * 100}%`, width: `${(1.5 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#f59e0b] rounded-sm hover:brightness-125 transition-all"
-                title="Environment: Container spin up"
-              />
-              {/* Env 2: OBD simulator 16.0s - 18.5s */}
-              <div
-                style={{ left: `${(16.0 / duration) * 100}%`, width: `${(2.5 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#f59e0b] rounded-sm hover:brightness-125 transition-all"
-                title="Environment: OBD II CAN bus connected"
-              />
-              {/* Env 3: Sandbox Bay fault trigger 21.0s - 23.0s */}
-              <div
-                style={{ left: `${(21.0 / duration) * 100}%`, width: `${(2.0 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#f59e0b] rounded-sm hover:brightness-125 transition-all"
-                title="Environment: Injected simulated sensor lag"
-              />
-              {/* Error block: 30.2s - 37.4s */}
-              <div
-                style={{ left: `${(30.2 / duration) * 100}%`, width: `${(7.2 / duration) * 100}%` }}
-                className="absolute top-0 bottom-0 bg-[#ef4444] rounded-sm border border-red-400 animate-pulse hover:brightness-125 transition-all"
-                title="Error / Failure: Expected P0420, got P0136"
-              />
+              {TIMELINE_TRACKS.env.map((seg) => (
+                <div
+                  key={seg.label}
+                  onClick={(e) => { e.stopPropagation(); onSeek(seg.start + 0.1); }}
+                  style={{ left: `${(seg.start / duration) * 100}%`, width: `${((seg.end - seg.start) / duration) * 100}%` }}
+                  className={cn(
+                    "absolute top-0 bottom-0 rounded-sm hover:brightness-125 transition-all cursor-pointer",
+                    "error" in seg && seg.error
+                      ? "bg-[#ef4444] border border-red-400 animate-pulse"
+                      : "bg-[#f59e0b]"
+                  )}
+                  title={seg.label}
+                />
+              ))}
             </div>
           </div>
 
@@ -206,34 +187,22 @@ export function ReplayTimeline({
           <div className="flex items-center gap-3">
             <span className="w-10 text-[10px] text-[#71717a] font-bold shrink-0">EVAL</span>
             <div className="relative flex-1 h-3.5 rounded bg-[#141413] border border-[#1f1f1d] overflow-hidden">
-              {/* Hatched blocks */}
-              <div
-                style={{
-                  left: `${(4.5 / duration) * 100}%`,
-                  width: `${(2.5 / duration) * 100}%`,
-                  backgroundImage: "repeating-linear-gradient(45deg, #475569 0, #475569 2px, transparent 2px, transparent 5px)",
-                }}
-                className="absolute top-0 bottom-0 rounded-sm"
-                title="Evaluation Gate: Preconditions validated"
-              />
-              <div
-                style={{
-                  left: `${(16.5 / duration) * 100}%`,
-                  width: `${(3.5 / duration) * 100}%`,
-                  backgroundImage: "repeating-linear-gradient(45deg, #475569 0, #475569 2px, transparent 2px, transparent 5px)",
-                }}
-                className="absolute top-0 bottom-0 rounded-sm"
-                title="Evaluation Gate: Protocol safety checks"
-              />
-              <div
-                style={{
-                  left: `${(35.0 / duration) * 100}%`,
-                  width: `${(2.4 / duration) * 100}%`,
-                  backgroundImage: "repeating-linear-gradient(45deg, #ef4444 0, #ef4444 2px, transparent 2px, transparent 5px)",
-                }}
-                className="absolute top-0 bottom-0 rounded-sm"
-                title="Evaluation Gate: FAIL (DTC mismatch)"
-              />
+              {TIMELINE_TRACKS.eval.map((seg) => (
+                <div
+                  key={seg.label}
+                  onClick={(e) => { e.stopPropagation(); onSeek(seg.start + 0.1); }}
+                  style={{
+                    left: `${(seg.start / duration) * 100}%`,
+                    width: `${((seg.end - seg.start) / duration) * 100}%`,
+                    backgroundImage:
+                      "error" in seg && seg.error
+                        ? "repeating-linear-gradient(45deg, #ef4444 0, #ef4444 2px, transparent 2px, transparent 5px)"
+                        : "repeating-linear-gradient(45deg, #475569 0, #475569 2px, transparent 2px, transparent 5px)",
+                  }}
+                  className="absolute top-0 bottom-0 rounded-sm cursor-pointer"
+                  title={seg.label}
+                />
+              ))}
             </div>
           </div>
 

@@ -3,6 +3,21 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import {
+  MechanicSprite,
+  AgentBotSprite,
+  CarIndicatorCluster,
+  WeldSparks,
+  DustMotes,
+} from "./sprites";
+import {
+  LIVE_TRACE,
+  WORKFLOW_STAGES,
+  getStageAtTime,
+  getBotPosAt,
+  getCrtLogsAt,
+  isFaultActiveAt,
+} from "@/lib/live-workflow";
 
 interface GarageBayCanvasProps {
   currentTime: number;
@@ -17,7 +32,7 @@ interface StationInfo {
   status: "ONLINE" | "PASS" | "ACTIVE" | "FAIL" | "WARNING" | "STANDBY";
   description: string;
   rect: { left: string; top: string; width: string; height: string };
-  timeRange: [number, number]; // [start, end] in seconds
+  timeRange: [number, number];
 }
 
 const STATIONS: StationInfo[] = [
@@ -28,7 +43,7 @@ const STATIONS: StationInfo[] = [
     status: "ONLINE",
     description: "Initial task intake & NLU parser. Dispatched task 'diagnose_vehicle'.",
     rect: { left: "4.5%", top: "14%", width: "19.5%", height: "35%" },
-    timeRange: [0, 6.0],
+    timeRange: [WORKFLOW_STAGES[0].start, WORKFLOW_STAGES[0].end],
   },
   {
     id: "verify",
@@ -37,7 +52,7 @@ const STATIONS: StationInfo[] = [
     status: "PASS",
     description: "Hydraulic hoist station. OBD-II communication protocol verified on Sedan #42.",
     rect: { left: "26.5%", top: "14%", width: "18.5%", height: "35%" },
-    timeRange: [6.0, 13.0],
+    timeRange: [WORKFLOW_STAGES[1].start, WORKFLOW_STAGES[1].end],
   },
   {
     id: "tool_bench",
@@ -46,7 +61,7 @@ const STATIONS: StationInfo[] = [
     status: "ACTIVE",
     description: "Diagnostic instrumentation bench. read_obd tool executed to poll DTC registers.",
     rect: { left: "51%", top: "14%", width: "19%", height: "35%" },
-    timeRange: [13.0, 22.0],
+    timeRange: [WORKFLOW_STAGES[2].start, WORKFLOW_STAGES[2].end],
   },
   {
     id: "sandbox_bay",
@@ -55,7 +70,7 @@ const STATIONS: StationInfo[] = [
     status: "FAIL",
     description: "Isolated fault containment chamber. Injected synthetic sensor delay; agent suggested wrong code.",
     rect: { left: "73%", top: "12%", width: "24%", height: "39%" },
-    timeRange: [29.0, 37.4],
+    timeRange: [WORKFLOW_STAGES[4].start, WORKFLOW_STAGES[4].end],
   },
   {
     id: "idle_agents",
@@ -82,7 +97,7 @@ const STATIONS: StationInfo[] = [
     status: "ACTIVE",
     description: "Automated regression verification gate. Checkpoint score: 0.12 (FAIL against benchmark P0420).",
     rect: { left: "66%", top: "56%", width: "21%", height: "38%" },
-    timeRange: [22.0, 29.0],
+    timeRange: [WORKFLOW_STAGES[3].start, WORKFLOW_STAGES[3].end],
   },
 ];
 
@@ -93,60 +108,25 @@ export function GarageBayCanvas({
 }: GarageBayCanvasProps) {
   const [hoveredBay, setHoveredBay] = useState<StationInfo | null>(null);
 
-  // Active station based on current timeline time
   const activeStation = useMemo(() => {
-    return STATIONS.find(
-      (s) => currentTime >= s.timeRange[0] && currentTime < s.timeRange[1]
-    );
+    const stage = getStageAtTime(currentTime);
+    if (!stage) return undefined;
+    return STATIONS.find((s) => s.id === stage.id);
   }, [currentTime]);
 
-  // Live CRT monitor text based on currentTime
-  const crtLogs = useMemo(() => {
-    if (currentTime < 6.0) {
-      return [
-        "DIAG [v1.8.2]",
-        "> AGENT: mechanic-bot",
-        "> INTAKE: vehicle_diag",
-        "> DISPATCH: ONLINE",
-      ];
-    } else if (currentTime < 13.0) {
-      return [
-        "DIAG [v1.8.2]",
-        "> PORT: ISO_15765_4",
-        "> CAN_BUS: 500kbps",
-        "> LINK: VERIFY OK",
-      ];
-    } else if (currentTime < 22.0) {
-      return [
-        "DIAG [v1.8.2]",
-        "> TOOL: read_obd",
-        "> REG: 0x43 0x02",
-        "> DTC: P0136 / B1000",
-      ];
-    } else if (currentTime < 29.0) {
-      return [
-        "DIAG [v1.8.2]",
-        "> EVAL GATE: RUNNING",
-        "> BENCHMARK: P0420",
-        "> CONFIDENCE: 0.12",
-      ];
-    } else {
-      return [
-        "DIAG [v1.8.2]",
-        "> [!] FAULT ISOLATED",
-        "> EXPECTED: P0420",
-        "> EMITTED:  P0136 [FAIL]",
-      ];
-    }
-  }, [currentTime]);
+  const crtLogs = useMemo(() => getCrtLogsAt(currentTime), [currentTime]);
 
-  const isFaultActive = currentTime >= 29.5;
+  const isFaultActive = isFaultActiveAt(currentTime);
+  const botPos = useMemo(() => getBotPosAt(currentTime), [currentTime]);
+  const activeStage = useMemo(() => getStageAtTime(currentTime), [currentTime]);
+
+  // idle wanderer oscillates
+  const wanderLeft = 15 + Math.sin(currentTime * 0.7) * 2.2;
 
   return (
     <div className="relative flex-1 h-full w-full bg-[#080808] flex items-center justify-center p-3 select-none overflow-hidden">
-      {/* 16-Bit Garage Container with Exact Aspect Ratio (794x465) */}
       <div className="relative w-full max-w-[880px] aspect-[794/465] rounded-xl border border-[#222220] shadow-2xl overflow-hidden bg-[#0a0a09]">
-        {/* Crisp Base Garage Floor Pixel Art */}
+        {/* Base floor */}
         <div className="absolute inset-0 z-0">
           <Image
             src="/live-garage/garage-scene.png"
@@ -159,7 +139,7 @@ export function GarageBayCanvas({
           />
         </div>
 
-        {/* Ambient CRT Scanline Overlay */}
+        {/* Scanlines + vignette */}
         <div
           className="absolute inset-0 pointer-events-none z-[2] opacity-15"
           style={{
@@ -167,13 +147,16 @@ export function GarageBayCanvas({
             backgroundSize: "100% 4px",
           }}
         />
+        <div className="absolute inset-0 pointer-events-none z-[2] shadow-[inset_0_0_80px_rgba(0,0,0,0.65)]" />
 
-        {/* Dynamic Overhead Fluorescent Lamp Glows */}
+        {/* Lamp glows */}
         <div className="absolute top-0 left-[12%] w-28 h-20 bg-blue-400/5 blur-2xl pointer-events-none z-[1]" />
         <div className="absolute top-0 left-[48%] w-32 h-20 bg-blue-400/5 blur-2xl pointer-events-none z-[1]" />
         <div className="absolute top-0 right-[15%] w-32 h-24 bg-red-500/10 blur-2xl pointer-events-none z-[1]" />
 
-        {/* Live CRT Diagnostic Screen Overlay (Top-Right) */}
+        <DustMotes />
+
+        {/* CRT monitor */}
         <div
           style={{ left: "80.4%", top: "7.8%", width: "11.8%", height: "12.2%" }}
           className="absolute z-10 pointer-events-none bg-[#031518]/90 border border-cyan-500/40 rounded p-1 font-mono text-[7px] sm:text-[8px] leading-[1.2] text-cyan-300 shadow-inner flex flex-col justify-between overflow-hidden"
@@ -201,15 +184,13 @@ export function GarageBayCanvas({
           </div>
         </div>
 
-        {/* Dynamic Red Flashing Strobe on Sandbox Bay Beacon Light */}
+        {/* Fault strobes */}
         {isFaultActive && (
           <>
-            {/* Flashing Red Beacon Point */}
             <div
               style={{ left: "91.8%", top: "24.5%" }}
               className="absolute z-10 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_15px_#ef4444,0_0_30px_#ef4444] animate-ping pointer-events-none"
             />
-            {/* Red Atmospheric Room Glow */}
             <div
               style={{ left: "74%", top: "14%", width: "22%", height: "35%" }}
               className="absolute z-[3] bg-red-500/10 rounded-lg pointer-events-none animate-pulse border border-red-500/30"
@@ -217,13 +198,18 @@ export function GarageBayCanvas({
           </>
         )}
 
-        {/* Dynamic Amber Caution Pulse on Unexplored Path */}
+        {/* Amber beacon */}
         <div
           style={{ left: "46.3%", top: "64%" }}
           className="absolute z-10 w-3 h-3 rounded-full bg-amber-400/80 shadow-[0_0_12px_#f59e0b,0_0_24px_#f59e0b] animate-pulse pointer-events-none"
         />
+        {/* rotating beacon sweep */}
+        <div
+          style={{ left: "45.2%", top: "62.2%", width: "28px", height: "28px" }}
+          className="absolute z-[4] pointer-events-none rounded-full border border-amber-400/30 animate-[sprite-beaconSpin_2.4s_linear_infinite]"
+        />
 
-        {/* Live Photon Pulses along the Blue Circuit Line */}
+        {/* Photon circuit */}
         <svg
           viewBox="0 0 794 465"
           className="absolute inset-0 w-full h-full pointer-events-none z-[4] overflow-visible"
@@ -235,7 +221,6 @@ export function GarageBayCanvas({
               <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {/* Path matching the blue circuit on the floor */}
           <path
             d="M 148 152 L 205 152 L 205 250 L 468 250 L 468 190 L 530 190"
             fill="none"
@@ -244,14 +229,92 @@ export function GarageBayCanvas({
             strokeDasharray="16 120"
             className="animate-pulse"
           />
+          <circle r="3.5" fill="#7dd3fc">
+            <animateMotion dur="6s" repeatCount="indefinite" path="M 148 152 L 205 152 L 205 250 L 468 250 L 468 190 L 530 190" />
+          </circle>
         </svg>
 
-        {/* Interactive Station Hotspots */}
+        {/* ============ CAR LIGHT CLUSTERS (blinking indicators) ============ */}
+        {/* Verify white sedan */}
+        <div style={{ left: "27%", top: "18%", width: "17%", height: "26%" }} className="absolute z-[6]">
+          <CarIndicatorCluster kind="verify" fault={isFaultActive} time={currentTime} />
+        </div>
+        {/* Sandbox red car */}
+        <div style={{ left: "74.5%", top: "22%", width: "21%", height: "24%" }} className="absolute z-[6]">
+          <CarIndicatorCluster kind="sandbox" fault={isFaultActive} time={currentTime} />
+        </div>
+        {/* Eval black car */}
+        <div style={{ left: "67%", top: "59%", width: "19%", height: "28%" }} className="absolute z-[6]">
+          <CarIndicatorCluster kind="eval" fault={isFaultActive} time={currentTime} />
+        </div>
+        {/* Idle lot */}
+        <div style={{ left: "3%", top: "59%", width: "22%", height: "32%" }} className="absolute z-[6]">
+          <CarIndicatorCluster kind="idle" fault={isFaultActive} time={currentTime} />
+        </div>
+
+        {/* ============ SPRITE CREW – pixel humans only ============ */}
+        {/* Dispatch operator – typing at desk */}
+        <div style={{ left: "11.5%", top: "27.5%" }} className="absolute z-[7]">
+          <MechanicSprite shirt="#2f6fed" cap="#38bdf8" action="typing" label="DISPATCH_OP" />
+          {/* monitor flicker */}
+          <div className="absolute -top-2 left-3 h-[6px] w-[10px] bg-sky-300/70 blur-[1px] animate-[sprite-flicker_1.7s_steps(2)_infinite]" />
+        </div>
+
+        {/* Verify crouch mechanic at front wheel */}
+        <div style={{ left: "38.2%", top: "37.5%" }} className="absolute z-[7] scale-90">
+          <MechanicSprite shirt="#ef4444" cap="#18181b" action="inspect" flip label="VERIFY_TECH" />
+        </div>
+
+        {/* Tool bench worker – hammering + sparks */}
+        <div style={{ left: "58.8%", top: "33.5%" }} className="absolute z-[7]">
+          <MechanicSprite shirt="#f59e0b" cap="#78350a" action="wrench" label="TOOLSMITH" />
+        </div>
+        <div style={{ left: "61.2%", top: "35.5%" }} className="absolute z-[7]">
+          <WeldSparks />
+        </div>
+        {/* bench task lamp */}
+        <div className="absolute z-[6] h-[8px] w-[8px] rounded-full bg-amber-200/80 blur-[3px] animate-[sprite-flicker_3s_steps(3)_infinite]" style={{ left: "60.5%", top: "30%" }} />
+
+        {/* Eval inspector with clipboard */}
+        <div style={{ left: "83.5%", top: "66%" }} className="absolute z-[7] scale-90">
+          <MechanicSprite shirt="#10b981" cap="#064e3b" action="idle" label="EVAL_AUDIT" />
+        </div>
+        {/* eval scanner sweep */}
+        <div style={{ left: "70%", top: "71%", width: "12%", height: "6px" }} className="absolute z-[6] overflow-hidden rounded bg-emerald-400/10">
+          <div className="h-full w-1/3 bg-emerald-300/70 blur-[1px] animate-[sprite-sweep_2.8s_linear_infinite]" />
+        </div>
+
+        {/* Idle wanderer + forklift nudge */}
+        <div style={{ left: `${wanderLeft}%`, top: "72%" }} className="absolute z-[7] scale-90">
+          <MechanicSprite shirt="#8b5cf6" cap="#1e1b4b" action="walk" label="STANDBY" />
+        </div>
+        <div style={{ left: "29%", top: "60%" }} className="absolute z-[6] animate-[sprite-forklift_3.2s_ease-in-out_infinite]">
+          <div className="h-[3px] w-[14px] rounded-full bg-amber-400/70 blur-[1px]" />
+        </div>
+
+        {/* Main agent bot – single live bot, driven by backend workflow timeline.
+            Position = getBotPosAt(currentTime) synced to WORKFLOW_STAGES.
+            Baked-in PNG bot is erased above, so this is the ONLY center bot. */}
+        <div
+          style={{ left: botPos.left, top: botPos.top }}
+          className="absolute z-[8] -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-linear"
+          data-stage={botPos.stageId}
+          data-time={currentTime.toFixed(1)}
+        >
+          <AgentBotSprite time={currentTime} fault={isFaultActive} />
+          {/* target ring */}
+          <div className="absolute -bottom-2 left-1/2 h-6 w-6 -translate-x-1/2 rounded-full border border-dashed border-sky-400/50 animate-spin" style={{ animationDuration: "6s" }} />
+          {/* workflow stage chip */}
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/20 bg-black/85 px-1.5 py-px font-mono text-[6.5px] font-bold uppercase tracking-wider text-white/90">
+            {activeStage ? `${activeStage.label} • ${activeStage.action}` : "standby"}
+          </div>
+        </div>
+
+        {/* Station hotspots */}
         {STATIONS.map((station) => {
           const isSelected = selectedBay === station.id;
           const isActive = activeStation?.id === station.id;
           const isHovered = hoveredBay?.id === station.id;
-
           return (
             <div
               key={station.id}
@@ -265,28 +328,25 @@ export function GarageBayCanvas({
                 height: station.rect.height,
               }}
               className={cn(
-                "absolute z-10 cursor-pointer transition-all duration-200 group",
-                // Subtle HUD reticle corners
-                "rounded-md",
+                "absolute z-10 cursor-pointer transition-all duration-200 rounded-md",
                 isHovered && "bg-white/[0.03] ring-1 ring-white/20",
                 isSelected && "bg-[#3b76ff]/10 ring-2 ring-[#3b76ff] shadow-[0_0_20px_rgba(59,118,255,0.3)]",
                 isActive && !isSelected && "ring-1 ring-[#3b76ff]/50 bg-[#3b76ff]/5"
               )}
             >
-              {/* Sleek Corner Brackets (Only visible when hovered or selected or active) */}
               {(isHovered || isSelected || isActive) && (
                 <div className="absolute inset-0 pointer-events-none">
-                  {/* Top-Left */}
                   <span className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[#3b76ff]" />
-                  {/* Top-Right */}
                   <span className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-[#3b76ff]" />
-                  {/* Bottom-Left */}
                   <span className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-[#3b76ff]" />
-                  {/* Bottom-Right */}
                   <span className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-[#3b76ff]" />
-                  {/* Station Code Identifier */}
                   <span className="absolute -top-3 right-1 font-mono text-[8px] font-bold text-[#3b76ff] bg-[#0c0c0b] px-1 border border-[#3b76ff]/40 rounded shadow-sm">
                     {station.code}
+                  </span>
+                  {/* live dot */}
+                  <span className="absolute -top-1.5 left-1 flex items-center gap-1 rounded-full bg-black/80 px-1 py-px font-mono text-[6px] text-emerald-300 border border-emerald-500/40">
+                    <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                    LIVE
                   </span>
                 </div>
               )}
@@ -294,30 +354,6 @@ export function GarageBayCanvas({
           );
         })}
 
-        {/* Active Bot HUD Halo */}
-        <div
-          style={{ left: "48.2%", top: "54%" }}
-          className="absolute z-[5] -translate-x-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center"
-        >
-          {/* Subtle Cybernetic Floor Target Indicator */}
-          <div className="h-9 w-9 rounded-full border border-blue-400/40 border-dashed animate-spin duration-10000" />
-
-          {/* Thought / Telemetry Banner */}
-          <div
-            className={cn(
-              "absolute -top-5 rounded px-2 py-0.5 text-[8.5px] font-mono font-bold whitespace-nowrap shadow-lg backdrop-blur-md transition-all border",
-              isFaultActive
-                ? "bg-[#1c0e0e]/95 text-red-300 border-red-500/60 shadow-red-950/50"
-                : "bg-[#0c1222]/95 text-blue-300 border-blue-500/60 shadow-blue-950/50"
-            )}
-          >
-            {isFaultActive
-              ? "FAULT DETECTED: Expected P0420, got P0136"
-              : `mechanic-bot-001 [${currentTime.toFixed(1)}s]`}
-          </div>
-        </div>
-
-        {/* Ambient Station Telemetry Strip (Bottom-Left Corner) */}
         {hoveredBay && (
           <div className="absolute bottom-2 left-2 z-20 rounded border border-dashed border-[#2a2a28] bg-[#0c0c0b]/95 px-2.5 py-1.5 font-mono text-[10px] text-[#f3f3f1] shadow-xl backdrop-blur-md max-w-[260px]">
             <div className="flex items-center justify-between gap-2">
