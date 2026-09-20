@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
   MechanicSprite,
-  AgentBotSprite,
+  WalkingBotSprite,
   CarIndicatorCluster,
   WeldSparks,
   DustMotes,
@@ -13,6 +13,7 @@ import {
 import {
   LIVE_TRACE,
   WORKFLOW_STAGES,
+  BOT_PATH_LINE,
   getStageAtTime,
   getBotPosAt,
   getCrtLogsAt,
@@ -23,6 +24,7 @@ interface GarageBayCanvasProps {
   currentTime: number;
   selectedBay: string | null;
   onSelectBay: (bay: string | null) => void;
+  playing?: boolean;
 }
 
 interface StationInfo {
@@ -105,6 +107,7 @@ export function GarageBayCanvas({
   currentTime,
   selectedBay,
   onSelectBay,
+  playing = true,
 }: GarageBayCanvasProps) {
   const [hoveredBay, setHoveredBay] = useState<StationInfo | null>(null);
 
@@ -119,6 +122,33 @@ export function GarageBayCanvas({
   const isFaultActive = isFaultActiveAt(currentTime);
   const botPos = useMemo(() => getBotPosAt(currentTime), [currentTime]);
   const activeStage = useMemo(() => getStageAtTime(currentTime), [currentTime]);
+  const botWalking = playing && botPos.moving;
+
+  // Walk-path overlay in floor px (viewBox 794x465) – faint full route +
+  // bright traveled portion so the path reads as intentional, not random.
+  const routePts = useMemo(
+    () => BOT_PATH_LINE.map(([x, y]) => `${((x / 100) * 794).toFixed(1)},${((y / 100) * 465).toFixed(1)}`).join(" "),
+    []
+  );
+  const traveledPts = useMemo(() => {
+    const curX = parseFloat(botPos.left);
+    const curY = parseFloat(botPos.top);
+    // nearest route vertex to current pos -> traveled = vertices[0..idx] + current
+    let best = 0;
+    let bestD = Infinity;
+    BOT_PATH_LINE.forEach(([x, y], i) => {
+      const d = (x - curX) ** 2 + (y - curY) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    const pts = BOT_PATH_LINE.slice(0, best + 1).map(
+      ([x, y]) => `${((x / 100) * 794).toFixed(1)},${((y / 100) * 465).toFixed(1)}`
+    );
+    pts.push(`${((curX / 100) * 794).toFixed(1)},${((curY / 100) * 465).toFixed(1)}`);
+    return pts.join(" ");
+  }, [botPos.left, botPos.top]);
 
   // idle wanderer oscillates
   const wanderLeft = 15 + Math.sin(currentTime * 0.7) * 2.2;
@@ -209,7 +239,7 @@ export function GarageBayCanvas({
           className="absolute z-[4] pointer-events-none rounded-full border border-amber-400/30 animate-[sprite-beaconSpin_2.4s_linear_infinite]"
         />
 
-        {/* Photon circuit */}
+        {/* Photon circuit + bot walk-path overlay */}
         <svg
           viewBox="0 0 794 465"
           className="absolute inset-0 w-full h-full pointer-events-none z-[4] overflow-visible"
@@ -228,6 +258,25 @@ export function GarageBayCanvas({
             strokeWidth="3"
             strokeDasharray="16 120"
             className="animate-pulse"
+          />
+          {/* full walk route (faint, dashed) – shows the bot's fixed path */}
+          <polyline
+            points={routePts}
+            fill="none"
+            stroke="#ffffff"
+            strokeOpacity="0.22"
+            strokeWidth="1.5"
+            strokeDasharray="5 5"
+          />
+          {/* traveled portion (bright) – grows with the timeline */}
+          <polyline
+            points={traveledPts}
+            fill="none"
+            stroke="#38bdf8"
+            strokeOpacity="0.85"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
           <circle r="3.5" fill="#7dd3fc">
             <animateMotion dur="6s" repeatCount="indefinite" path="M 148 152 L 205 152 L 205 250 L 468 250 L 468 190 L 530 190" />
@@ -292,20 +341,25 @@ export function GarageBayCanvas({
           <div className="h-[3px] w-[14px] rounded-full bg-amber-400/70 blur-[1px]" />
         </div>
 
-        {/* Main agent bot – single live bot, driven by backend workflow timeline.
-            Position = getBotPosAt(currentTime) synced to WORKFLOW_STAGES.
-            Baked-in PNG bot is erased above, so this is the ONLY center bot. */}
+        {/* Main mechanic bot – grounded walker on the fixed floor path.
+            Feet anchor at getBotPosAt(currentTime); walk cycle runs only
+            while moving between stations, stands at dwells. Faces travel
+            direction. Stage chip shows current backend workflow step. */}
         <div
           style={{ left: botPos.left, top: botPos.top }}
-          className="absolute z-[8] -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-linear"
+          className="absolute z-[8] -translate-x-1/2 -translate-y-[92%] will-change-[left,top]"
           data-stage={botPos.stageId}
           data-time={currentTime.toFixed(1)}
+          data-moving={botWalking ? "1" : "0"}
         >
-          <AgentBotSprite time={currentTime} fault={isFaultActive} />
-          {/* target ring */}
-          <div className="absolute -bottom-2 left-1/2 h-6 w-6 -translate-x-1/2 rounded-full border border-dashed border-sky-400/50 animate-spin" style={{ animationDuration: "6s" }} />
+          <WalkingBotSprite moving={botWalking} dir={botPos.dir} fault={isFaultActive} time={currentTime} />
+          {/* ground target ring – flat on the floor under the feet */}
+          <div
+            className="absolute left-1/2 top-full h-[10px] w-[34px] -translate-x-1/2 -translate-y-[7px] rounded-[50%] border border-dashed border-sky-400/50 animate-spin"
+            style={{ animationDuration: "6s" }}
+          />
           {/* workflow stage chip */}
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/20 bg-black/85 px-1.5 py-px font-mono text-[6.5px] font-bold uppercase tracking-wider text-white/90">
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/20 bg-black/85 px-1.5 py-px font-mono text-[6.5px] font-bold uppercase tracking-wider text-white/90">
             {activeStage ? `${activeStage.label} • ${activeStage.action}` : "standby"}
           </div>
         </div>

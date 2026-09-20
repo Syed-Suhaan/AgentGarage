@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
-  MiniMap,
   useReactFlow,
   ReactFlowProvider,
   type Node,
@@ -245,41 +244,28 @@ function BehaviourGraphInner({}: BehaviourGraphProps) {
           >
             <Background color="#1a1a18" gap={24} size={1} />
             
-            {/* Floating Minimap and Controls Toolbar (Bottom Right) */}
+            {/* Floating Controls Toolbar (Bottom Right) */}
             <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2.5">
-              <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#0c0c0b]/95 backdrop-blur-md p-1 shadow-2xl overflow-hidden">
-                <MiniMap
-                  nodeColor={(n) => {
-                    if (n.id === selectedNodeId) return "#3b76ff";
-                    if (AGENTGARAGE_NODES[n.id]?.isFailure) return "#ef4444";
-                    return "#3f3f46";
-                  }}
-                  maskColor="rgba(0, 0, 0, 0.75)"
-                  className="!relative !m-0 !w-36 !h-24 !bg-[#0c0c0b] !rounded-lg"
-                  pannable
-                  zoomable
-                />
-              </div>
-
               <CanvasControls onCenterSelected={handleCenterSelected} />
             </div>
           </ReactFlow>
 
-          {/* Floating Legend (Bottom Left) */}
-          <GraphLegend />
         </div>
 
-        {/* State Inspector Panel (Right Drawer) */}
-        {isInspectorOpen && (
-          <StateInspector
-            node={activeNodeMeta}
-            onClose={() => setIsInspectorOpen(false)}
-            onSelectNode={(id) => {
-              setSelectedNodeId(id);
-              handleCenterSelected();
-            }}
-          />
-        )}
+        {/* Right column: Legend above State Inspector */}
+        <div className="w-80 sm:w-96 shrink-0 border-l border-[#2a2a28] bg-[#0c0c0b] flex flex-col h-full overflow-hidden z-20">
+          <GraphLegend />
+          {isInspectorOpen && (
+            <StateInspector
+              node={activeNodeMeta}
+              onClose={() => setIsInspectorOpen(false)}
+              onSelectNode={(id) => {
+                setSelectedNodeId(id);
+                handleCenterSelected();
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Bottom Linked Trace Drawer */}

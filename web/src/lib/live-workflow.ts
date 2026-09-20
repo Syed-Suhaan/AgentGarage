@@ -107,39 +107,63 @@ export function getCrtLogsAt(t: number): string[] {
   return ["DIAG [v1.8.2]", "> [!] FAULT ISOLATED", "> EXPECTED: P0420", "> EMITTED:  P0136 [FAIL]"];
 }
 
-/* Bot route in % of canvas – follows the blue circuit, then sandbox.
- * Waypoint times are aligned to WORKFLOW_STAGES above. */
+/* Bot route in % of canvas – walks EXACTLY on the painted blue circuit
+ * (orthogonal segments only, no diagonal shortcuts through "air"):
+ *  blue line corners in px (794x465): (148,152)->(205,152)->(205,250)->
+ *  (468,250)->(468,190)->(530,190)  =>  %: x/794*100, y/465*100.
+ *  Dwell duplicated at stations so the bot stands (legs still) while the
+ *  stage works, then walks. Off-line legs use floor aisles only. */
 const BOT_ROUTE: Array<[number, number, number]> = [
-  [13.5, 38.5, 0], // dispatch desk
-  [25.5, 38.5, 6], // verify entry
-  [34.5, 41.0, 10], // verify car
-  [48.0, 53.5, 15], // down to circuit (passes baked-bot spot – we erase that)
-  [58.5, 53.0, 19], // along circuit
-  [61.0, 42.0, 22], // tool bench
-  [74.0, 58.0, 26], // eval gate
-  [76.5, 48.0, 30], // sandbox door on fault
-  [79.0, 48.5, 37.4],
+  [14.2, 36.8, 0], // dispatch bay stand
+  [14.2, 36.8, 4.0], // dwell: intake
+  [18.6, 32.7, 5.5], // join blue line
+  [25.8, 32.7, 7.5], // walk top horizontal to verify tap
+  [25.8, 32.7, 10.0], // dwell: verify hoist
+  [25.8, 53.8, 12.5], // walk down vertical
+  [40.0, 53.8, 15.5], // walk bottom horizontal (passes center)
+  [58.9, 53.8, 18.5], // reach corner
+  [58.9, 40.9, 21.0], // walk up vertical to tool tap
+  [58.9, 40.9, 23.5], // dwell: tool bench
+  [66.7, 40.9, 25.0], // walk to line end
+  [71.5, 47.0, 26.5], // aisle to eval approach
+  [74.0, 55.0, 27.5], // eval gate stand
+  [74.0, 55.0, 28.5], // dwell: eval
+  [76.5, 48.0, 30.5], // aisle to sandbox door
+  [79.0, 48.5, 32.0], // sandbox bay inside
+  [79.0, 48.5, 37.4], // dwell: fault containment
 ];
 
-export function getBotPosAt(t: number): { left: string; top: string; stageId: string } {
+/** Visible floor path polyline (for route glow overlay), in % coords. */
+export const BOT_PATH_LINE: Array<[number, number]> = BOT_ROUTE.map(([x, y]) => [x, y]);
+
+export function getBotPosAt(t: number): {
+  left: string;
+  top: string;
+  stageId: string;
+  dir: 1 | -1;
+  moving: boolean;
+} {
+  const stageOf = (tt: number) => getStageAtTime(tt)?.id ?? "dispatch";
   if (t <= BOT_ROUTE[0][2]) {
-    const s = getStageAtTime(t);
-    return { left: `${BOT_ROUTE[0][0]}%`, top: `${BOT_ROUTE[0][1]}%`, stageId: s?.id ?? "dispatch" };
+    return { left: `${BOT_ROUTE[0][0]}%`, top: `${BOT_ROUTE[0][1]}%`, stageId: stageOf(t), dir: 1, moving: false };
   }
   for (let i = 0; i < BOT_ROUTE.length - 1; i++) {
     const [x0, y0, t0] = BOT_ROUTE[i];
     const [x1, y1, t1] = BOT_ROUTE[i + 1];
     if (t >= t0 && t <= t1) {
-      const k = (t - t0) / Math.max(0.0001, t1 - t0);
+      const span = Math.max(0.0001, t1 - t0);
+      const k = (t - t0) / span;
+      // dwell segments: same point -> standing, not moving
+      const dist = Math.hypot(x1 - x0, y1 - y0);
+      const moving = dist > 0.01;
       const x = x0 + (x1 - x0) * k;
-      const y = y0 + (y1 - y0) * k + Math.sin(t * 4) * 0.25;
-      const s = getStageAtTime(t);
-      return { left: `${x}%`, top: `${y}%`, stageId: s?.id ?? "dispatch" };
+      const y = y0 + (y1 - y0) * k;
+      const dir: 1 | -1 = x1 < x0 ? -1 : 1;
+      return { left: `${x}%`, top: `${y}%`, stageId: stageOf(t), dir, moving };
     }
   }
   const last = BOT_ROUTE[BOT_ROUTE.length - 1];
-  const s = getStageAtTime(t);
-  return { left: `${last[0]}%`, top: `${last[1]}%`, stageId: s?.id ?? "sandbox_bay" };
+  return { left: `${last[0]}%`, top: `${last[1]}%`, stageId: stageOf(t), dir: 1, moving: false };
 }
 
 /* Timeline tracks – same times as backend spans, consumed by ReplayTimeline */

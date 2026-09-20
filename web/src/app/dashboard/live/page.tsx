@@ -18,8 +18,8 @@ const BAY_KEYS = [
 ] as const;
 
 export default function LiveGaragePage() {
-  const [currentTime, setCurrentTime] = useState<number>(LIVE_TRACE.errorAt);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2 | 4>(1);
   const [selectedBay, setSelectedBay] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -29,7 +29,14 @@ export default function LiveGaragePage() {
   const lastTimeRef = useRef<number | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
 
-  // Playback timer loop – drives bot + timeline + inspector from one clock
+  // Autoplay the backend workflow on mount – bot + timeline run together,
+  // no spacebar needed. Loops the 37.4s trace.
+  useEffect(() => {
+    setCurrentTime(0);
+    setIsPlaying(true);
+  }, []);
+
+  // Playback timer loop – single clock drives bot + timeline needle + inspector
   useEffect(() => {
     if (!isPlaying) {
       lastTimeRef.current = null;
@@ -43,10 +50,8 @@ export default function LiveGaragePage() {
         const delta = (now - lastTimeRef.current) / 1000;
         setCurrentTime((prev) => {
           const next = prev + delta * playbackSpeed;
-          if (next >= duration) {
-            setIsPlaying(false);
-            return duration;
-          }
+          // Loop the trace so the bot keeps running with the timeline
+          if (next >= duration) return 0;
           return next;
         });
       }
@@ -237,6 +242,7 @@ export default function LiveGaragePage() {
               currentTime={currentTime}
               selectedBay={selectedBay}
               onSelectBay={setSelectedBay}
+              playing={isPlaying}
             />
           </div>
 

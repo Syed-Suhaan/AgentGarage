@@ -173,6 +173,131 @@ export function AgentBotSprite({
   );
 }
 
+/* Grounded walking mechanic-bot – pure CSS pixel robot with a real walk
+ * cycle (legs step, arms swing, head bob). Feet stay planted on the floor
+ * path; nothing floats. Matches the white-bot / dark-visor reference. */
+export function WalkingBotSprite({
+  moving,
+  dir = 1,
+  fault,
+  time,
+}: {
+  moving: boolean;
+  dir?: 1 | -1;
+  fault: boolean;
+  time: number;
+}) {
+  return (
+    <div className="relative flex flex-col items-center pointer-events-none select-none">
+      <div className="rounded border border-blue-500/50 bg-black/85 px-1 py-px font-mono text-[6.5px] font-bold text-blue-300 whitespace-nowrap">
+        mechanic-bot-001
+      </div>
+      <div
+        className={cn("relative mt-0.5", dir === -1 && "-scale-x-100")}
+        style={{ width: 30, height: 40, imageRendering: "pixelated" }}
+      >
+        {/* ground shadow (stays on floor, scales with step) */}
+        <div
+          className={cn(
+            "absolute bottom-0 left-1/2 h-[4px] w-[24px] -translate-x-1/2 rounded-[50%] bg-black/65 blur-[1px]",
+            moving && "animate-[sprite-shadowStep_0.44s_steps(2)_infinite]"
+          )}
+        />
+        {/* legs – alternate stepping only while moving */}
+        <div className="absolute bottom-[4px] left-1/2 flex -translate-x-1/2 gap-[3px]">
+          <div
+            className={cn(
+              "w-[7px] rounded-[1px] border border-black/70 bg-[#d7dbe0]",
+              moving ? "h-[12px] animate-[sprite-stepL_0.44s_steps(2)_infinite]" : "h-[11px]"
+            )}
+          >
+            <div className="mx-auto mt-[8px] h-[3px] w-[7px] bg-[#3b76ff]" />
+          </div>
+          <div
+            className={cn(
+              "w-[7px] rounded-[1px] border border-black/70 bg-[#b9bec7]",
+              moving ? "h-[12px] animate-[sprite-stepR_0.44s_steps(2)_infinite]" : "h-[11px]"
+            )}
+          >
+            <div className="mx-auto mt-[8px] h-[3px] w-[7px] bg-[#1d4ed8]" />
+          </div>
+        </div>
+        {/* torso */}
+        <div
+          className={cn(
+            "absolute bottom-[14px] left-1/2 h-[13px] w-[20px] -translate-x-1/2 rounded-[2px] border border-black/70 bg-[#eef1f5]",
+            moving && "animate-[sprite-chassisBob_0.44s_steps(2)_infinite]"
+          )}
+        >
+          <div
+            className={cn(
+              "mx-auto mt-[3px] h-[4px] w-[4px] rounded-full",
+              fault ? "bg-red-500 shadow-[0_0_6px_#ef4444]" : "bg-emerald-400 shadow-[0_0_6px_#10b981]"
+            )}
+            style={{ animation: "sprite-blinkHard 1.1s steps(2) infinite" }}
+          />
+          <div className="mx-auto mt-[1px] h-[2px] w-[12px] bg-[#9aa0a6]" />
+        </div>
+        {/* arms – swing while walking, hang when idle */}
+        <div
+          className={cn(
+            "absolute bottom-[15px] left-[1px] h-[11px] w-[5px] origin-top rounded-[1px] border border-black/60 bg-[#d7dbe0]",
+            moving && "animate-[sprite-armSwing_0.44s_steps(2)_infinite]"
+          )}
+        />
+        <div
+          className={cn(
+            "absolute bottom-[15px] right-[1px] h-[11px] w-[5px] origin-top rounded-[1px] border border-black/60 bg-[#c4c9d2]",
+            moving && "animate-[sprite-armSwingR_0.44s_steps(2)_infinite]"
+          )}
+        >
+          {/* gripper claw */}
+          <div className="absolute -bottom-[3px] left-1/2 h-[4px] w-[6px] -translate-x-1/2 border border-black/70 bg-[#f59e0b]" />
+        </div>
+        {/* head with dark visor + blue eyes */}
+        <div
+          className={cn(
+            "absolute bottom-[27px] left-1/2 h-[11px] w-[16px] -translate-x-1/2 rounded-[2px] border border-black/70 bg-[#f4f6f9]",
+            moving && "animate-[sprite-headBob_0.44s_steps(2)_infinite]"
+          )}
+        >
+          <div className="absolute left-[2px] right-[2px] top-[2px] h-[6px] rounded-[1px] bg-[#111318]">
+            <div className="absolute left-[2px] top-[2px] h-[2px] w-[2px] rounded-full bg-sky-300 shadow-[0_0_4px_#38bdf8]" />
+            <div className="absolute right-[2px] top-[2px] h-[2px] w-[2px] rounded-full bg-sky-300 shadow-[0_0_4px_#38bdf8]" />
+          </div>
+        </div>
+        {/* antenna with live tip */}
+        <div className="absolute bottom-[37px] left-1/2 h-[4px] w-[2px] -translate-x-1/2 bg-[#9aa0a6]" />
+        <div
+          className={cn(
+            "absolute bottom-[39px] left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full",
+            fault ? "bg-red-500 shadow-[0_0_6px_#ef4444]" : "bg-cyan-300 shadow-[0_0_6px_#22d3ee]"
+          )}
+          style={{ animation: "sprite-blinkHard 0.9s steps(2) infinite" }}
+        />
+        {/* walking dust kicks – only while moving */}
+        {moving && (
+          <>
+            <div className="absolute bottom-[1px] left-[2px] h-[3px] w-[5px] rounded-full bg-zinc-400/50 blur-[1px] animate-[sprite-smoke_0.9s_ease-out_infinite]" />
+            <div className="absolute bottom-[1px] right-[3px] h-[2px] w-[4px] rounded-full bg-zinc-400/40 blur-[1px] animate-[sprite-smoke_0.9s_ease-out_infinite]" style={{ animationDelay: "0.45s" }} />
+          </>
+        )}
+      </div>
+      {/* time chip */}
+      <div
+        className={cn(
+          "mt-0.5 rounded border px-1 py-px font-mono text-[7px] font-bold whitespace-nowrap backdrop-blur-md",
+          fault
+            ? "border-red-500/60 bg-[#1c0e0e]/95 text-red-300"
+            : "border-blue-500/60 bg-[#0c1222]/95 text-blue-300"
+        )}
+      >
+        {fault ? "FAULT: P0420→P0136" : `${time.toFixed(1)}s • ${moving ? "WALKING" : "AT_STATION"}`}
+      </div>
+    </div>
+  );
+}
+
 export function CarIndicatorCluster({
   kind,
   fault,
