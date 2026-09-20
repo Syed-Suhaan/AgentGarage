@@ -82,9 +82,28 @@ export interface SandboxInvariants {
 
 export interface SandboxResult {
   sandbox_id: string;
+  scenario_id?: string;
+  agent_id?: string;
+  agent_version?: string;
   status: "running" | "verified_fail" | "verified_pass" | "error";
   log_s3?: string;
   invariants?: SandboxInvariants;
+  final_status?: string;
+  fault?: ScenarioFault;
+  initial_state?: Record<string, unknown>;
+  log?: TraceSpan[];
+  origin_trace?: string | null;
+  agent_message?: string;
+  runtime?: string;
+}
+
+export interface SandboxSummary {
+  sandbox_id: string;
+  scenario_id?: string;
+  agent_id?: string;
+  status: SandboxResult["status"];
+  fault?: ScenarioFault;
+  runtime?: string;
 }
 
 // --- Eval ---
@@ -107,6 +126,7 @@ export interface Eval {
   fault: ScenarioFault;
   invariants: string[];
   status: "protected";
+  history?: { agent_version: string; passed: boolean }[];
 }
 
 export interface EvalRunResult {

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { DEMO_AGENT_ID } from "@/lib/agent";
 import { useUnexplored } from "@/lib/hooks/use-unexplored";
-import { useSimulate } from "@/lib/hooks/use-scenarios";
+import { useGraph } from "@/lib/hooks/use-graph";
+import { useScenarios, useSimulate } from "@/lib/hooks/use-scenarios";
+import { useStartSandbox } from "@/lib/hooks/use-sandbox";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FlaskConical, Search } from "lucide-react";
+import { FlaskConical, Search, Plus, Loader2 } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
@@ -35,41 +37,65 @@ const DANGER_METADATA: Record<string, { severity: "critical" | "high" | "medium"
   },
 };
 
+function dangerFor(action: string) {
+  return (
+    DANGER_METADATA[action] || {
+      severity: "medium" as const,
+      risk: `Untested (${action}): the agent has never faced this transition — sandbox it to see if invariants hold.`,
+      badge: "POTENTIAL RISK",
+    }
+  );
+}
+
 export default function GapsPage() {
-  const { data: gaps, isLoading, dataUpdatedAt } = useUnexplored(DEMO_AGENT_ID);
+  const router = useRouter();
+  const { data: gaps, isLoading, dataUpdatedAt, refetch } = useUnexplored(DEMO_AGENT_ID);
+  const { data: graph } = useGraph(DEMO_AGENT_ID);
+  const { data: scenariosData } = useScenarios(DEMO_AGENT_ID);
   const simulate = useSimulate(DEMO_AGENT_ID);
+  const startSandbox = useStartSandbox();
 
-  // Real-time telemetry: poll-driven live stats with smooth drift.
-  // Baselines come from the coverage snapshot; each tick simulates the
-  // streaming world-model feed (swap with computed API values in prod).
-  const [live, setLive] = useState({ coverage: 68, gaps: 27, predicted: 142 });
-  const [now, setNow] = useState(() => Date.now());
+  const [customState, setCustomState] = useState("rollback_succeeded");
+  const [customAction, setCustomAction] = useState("");
+  const [flowError, setFlowError] = useState<string | null>(null);
+  const [runningGap, setRunningGap] = useState<string | null>(null);
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setNow(Date.now());
-      setLive((p) => ({
-        coverage: Math.min(69.5, Math.max(66.5, p.coverage + (Math.random() - 0.5) * 0.3)),
-        gaps: Math.min(29, Math.max(25, p.gaps + (Math.random() < 0.25 ? (Math.random() < 0.5 ? -1 : 1) : 0))),
-        predicted: Math.min(145, Math.max(139, p.predicted + (Math.random() < 0.4 ? (Math.random() < 0.5 ? -1 : 1) : 0))),
-      }));
-    }, 2500);
-    return () => clearInterval(id);
-  }, []);
+  const busy = simulate.isPending || startSandbox.isPending;
 
-  const updatedAgo = Math.max(0, Math.round((now - (dataUpdatedAt || now)) / 1000));
+  // Real stats derived from the API — no simulated drift.
+  const observedCount = (graph?.edges || []).filter((e) => e.kind === "observed").length;
+  const predictedCount = (scenariosData?.scenarios || []).length;
+  const gapCount = gaps?.length || 0;
+  const updatedAgo = Math.max(
+    0,
+    Math.round(((Date.now() - (dataUpdatedAt || Date.now())) / 1000))
+  );
+
+  async function inventAndRun(state: string, action: string) {
+    const s = state.trim();
+    const a = action.trim();
+    if (!s || !a || busy) return;
+    setFlowError(null);
+    setRunningGap(`${s}::${a}`);
+    try {
+      // 1. World model predicts the invented path → scenario (works for any
+      //    state/action strings, not just the LEGAL frontier).
+      const sc = await simulate.mutateAsync({
+        unexplored_state: s,
+        untried_action: a,
+      });
+      // 2. Run it on the real sandbox. On the demo stack this executes
+      //    inline and auto-compiles a protected eval on verified_fail.
+      const started = await startSandbox.mutateAsync(sc.scenario_id);
+      // 3. Take the judge straight to the live result.
+      router.push(`/dashboard/sandboxes/${started.sandbox_id}`);
+    } catch (e) {
+      setFlowError(e instanceof Error ? e.message : "Sandbox run failed");
+      setRunningGap(null);
+    }
+  }
 
   if (isLoading) return <TableSkeleton />;
-
-  if (!gaps || gaps.length === 0) {
-    return (
-      <EmptyState
-        icon={<Search className="h-10 w-10 text-[#8f8f8d]" />}
-        title="No unexplored paths found"
-        description="All reachable state-action pairs have been observed. Run more traces to discover new paths."
-      />
-    );
-  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -95,80 +121,93 @@ export default function GapsPage() {
             LIVE • synced {updatedAgo}s ago
           </span>
           <span className="rounded border border-dashed border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-mono text-red-400 tabular-nums">
-            {gaps.length} Unexplored Paths Flagged
+            {gapCount} Unexplored Paths Flagged
           </span>
         </div>
       </div>
 
-      {/* Coverage stat cards */}
+      {/* Coverage stat cards — computed from the API */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Explored Coverage */}
         <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-5 flex items-center gap-5 shadow-xl">
-          <div className="relative h-20 w-20 shrink-0">
-            <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
-              <circle cx="40" cy="40" r="32" fill="none" stroke="#2a2a28" strokeWidth="9" />
-              <circle
-                cx="40"
-                cy="40"
-                r="32"
-                fill="none"
-                stroke="#3b76ff"
-                strokeWidth="9"
-                strokeLinecap="round"
-                strokeDasharray={`${(live.coverage / 100) * 2 * Math.PI * 32} ${2 * Math.PI * 32}`}
-                className="transition-all duration-1000 ease-out"
-              />
-            </svg>
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-400 animate-pulse" title="Live" />
-          </div>
           <div className="min-w-0">
-            <p className="text-sm font-mono text-[#8f8f8d]">Explored Coverage</p>
+            <p className="text-sm font-mono text-[#8f8f8d]">Observed Edges</p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap">
-              <span className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{Math.round(live.coverage)}%</span>
-              <span className="text-sm font-mono text-emerald-400">+6% ↑</span>
+              <span className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{observedCount}</span>
             </p>
-            <p className="text-xs font-mono text-[#8f8f8d] mt-0.5">vs. previous 7 days</p>
+            <p className="text-xs font-mono text-[#8f8f8d] mt-0.5">from production traces</p>
           </div>
         </div>
 
-        {/* High-Risk Gaps */}
         <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-5 flex items-center gap-5 shadow-xl">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center">
-            <svg viewBox="0 0 24 24" className="h-10 w-10" fill="#f87171">
-              <path d="M12 2 1.8 20.2h20.4L12 2Zm0 4.2L19.4 18H4.6L12 6.2ZM11 10v4h2v-4h-2Zm0 5v2h2v-2h-2Z" />
-            </svg>
-          </div>
           <div className="min-w-0">
             <p className="text-sm font-mono text-[#8f8f8d]">High-Risk Gaps</p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap">
-              <span key={live.gaps} className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{live.gaps}</span>
-              <span className="text-sm font-mono text-red-400">+9 ↑</span>
+              <span className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{gapCount}</span>
             </p>
             <p className="text-xs font-mono text-[#8f8f8d] mt-0.5">untried transitions</p>
           </div>
         </div>
 
-        {/* Predicted Paths */}
         <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-5 flex items-center gap-5 shadow-xl">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center">
-            <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none" stroke="#3b76ff" strokeWidth="2" strokeLinecap="round">
-              <circle cx="6" cy="6" r="2.5" fill="#3b76ff" stroke="none" />
-              <circle cx="6" cy="18" r="2.5" fill="#3b76ff" stroke="none" />
-              <circle cx="18" cy="12" r="2.5" fill="#3b76ff" stroke="none" />
-              <path d="M8 7.5 15.5 11M8 16.5 15.5 13" />
-            </svg>
-          </div>
           <div className="min-w-0">
-            <p className="text-sm font-mono text-[#8f8f8d]">Predicted Paths</p>
+            <p className="text-sm font-mono text-[#8f8f8d]">Predicted Scenarios</p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap">
-              <span key={live.predicted} className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{live.predicted}</span>
-              <span className="text-sm font-mono text-emerald-400">+18 ↑</span>
+              <span className="text-4xl font-semibold tracking-tight text-[#f3f3f1] tabular-nums">{predictedCount}</span>
             </p>
-            <p className="text-xs font-mono text-[#8f8f8d] mt-0.5">potential new paths</p>
+            <p className="text-xs font-mono text-[#8f8f8d] mt-0.5">world-model outputs</p>
           </div>
         </div>
       </div>
 
+      {/* Invent a new dangerous path — freeform, not limited to the frontier */}
+      <div className="rounded-2xl border border-dashed border-red-500/30 bg-[#141413] p-5 shadow-xl">
+        <div className="flex items-center gap-2 mb-1">
+          <Plus className="h-4 w-4 text-red-400" />
+          <h2 className="text-sm font-mono font-medium text-[#f3f3f1]">
+            Invent a new dangerous path
+          </h2>
+        </div>
+        <p className="text-xs font-mono text-[#8f8f8d] mb-4">
+          Any state + action. The world model predicts it, the sandbox runs the real agent against it,
+          and a failure becomes a protected eval. Try e.g. state <code className="text-zinc-300">bad_deployment_identified</code> + action <code className="text-zinc-300">partial_json</code>.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <input
+            value={customState}
+            onChange={(e) => setCustomState(e.target.value)}
+            placeholder="unexplored state (e.g. rollback_succeeded)"
+            className="h-9 flex-1 rounded-lg border border-dashed border-[#2a2a28] bg-[#0b0b0a] px-3 text-xs font-mono text-[#f3f3f1] focus:border-red-500/60 focus:outline-none"
+          />
+          <input
+            value={customAction}
+            onChange={(e) => setCustomAction(e.target.value)}
+            placeholder="untried action (e.g. partial_json)"
+            className="h-9 flex-1 rounded-lg border border-dashed border-[#2a2a28] bg-[#0b0b0a] px-3 text-xs font-mono text-[#f3f3f1] focus:border-red-500/60 focus:outline-none"
+          />
+          <Button
+            size="sm"
+            onClick={() => inventAndRun(customState, customAction)}
+            disabled={busy || !customState.trim() || !customAction.trim()}
+            className="bg-red-500 hover:bg-red-600 text-white font-mono text-xs px-4 h-9"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <FlaskConical className="h-3.5 w-3.5 mr-1.5" />}
+            Predict + Run Sandbox
+          </Button>
+        </div>
+        {flowError && (
+          <p className="mt-3 text-xs font-mono text-red-400">
+            {flowError} — <button className="underline" onClick={() => { setFlowError(null); refetch(); }}>retry</button>
+          </p>
+        )}
+      </div>
+
+      {!gaps || gaps.length === 0 ? (
+        <EmptyState
+          icon={<Search className="h-10 w-10 text-[#8f8f8d]" />}
+          title="No unexplored paths found"
+          description="All reachable state-action pairs have been observed. Seed more traces or invent a custom path above to discover new ones."
+        />
+      ) : (
       <div className="rounded-2xl border border-dashed border-[#2a2a28] bg-[#141413] overflow-hidden shadow-xl">
         <table className="w-full">
           <thead>
@@ -182,13 +221,11 @@ export default function GapsPage() {
           </thead>
           <tbody className="divide-y divide-[#1f1f1d]">
             {gaps.map((gap, i) => {
-              const danger = DANGER_METADATA[gap.untried_action] || {
-                severity: "medium",
-                risk: "Unverified edge behavior in production",
-                badge: "POTENTIAL RISK",
-              };
+              const danger = dangerFor(gap.untried_action);
               const isCritical = danger.severity === "critical";
               const isHigh = danger.severity === "high";
+              const key = `${gap.unexplored_state || gap.state}::${gap.untried_action}`;
+              const running = runningGap === key && busy;
 
               return (
                 <tr key={i} className="hover:bg-[#181816] transition-colors group">
@@ -223,7 +260,7 @@ export default function GapsPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex gap-1.5 flex-wrap">
-                      {gap.support_traces.map((t) => (
+                      {(gap.support_traces || []).map((t) => (
                         <span key={t} className="rounded border border-dashed border-[#2a2a28] bg-[#0b0b0a] px-2 py-0.5 text-[11px] font-mono text-[#8f8f8d]">
                           {t}
                         </span>
@@ -235,16 +272,15 @@ export default function GapsPage() {
                       size="sm"
                       variant="outline"
                       className="border-dashed border-red-500/30 bg-red-500/10 hover:border-red-500 hover:bg-red-500/20 text-red-400 text-xs font-mono"
-                      onClick={() =>
-                        simulate.mutate({
-                          unexplored_state: gap.unexplored_state || gap.state || "",
-                          untried_action: gap.untried_action,
-                        })
-                      }
-                      disabled={simulate.isPending}
+                      onClick={() => inventAndRun(gap.unexplored_state || gap.state || "", gap.untried_action)}
+                      disabled={busy}
                     >
-                      <FlaskConical className="h-3.5 w-3.5 mr-1.5 text-red-400" />
-                      Test in Sandbox
+                      {running ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <FlaskConical className="h-3.5 w-3.5 mr-1.5 text-red-400" />
+                      )}
+                      {running ? "Running…" : "Test in Sandbox"}
                     </Button>
                   </td>
                 </tr>
@@ -253,6 +289,7 @@ export default function GapsPage() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

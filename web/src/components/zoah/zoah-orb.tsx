@@ -179,6 +179,9 @@ export function ZoahOrb({ palette, spin = 0, className = "" }: ZoahOrbProps) {
     }
 
     gl.useProgram(prog);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.clearColor(0, 0, 0, 0);
 
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);

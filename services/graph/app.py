@@ -60,8 +60,27 @@ def index_trace(trace):
         state = nxt
 
 
+def _ensure_edges(agent_id):
+    """Rebuild in-memory edges from persisted traces when the edge index is
+    empty. The SAM demo has no Neptune and no EventBridge graph builder, so a
+    fresh Lambda container would otherwise return an empty graph even though
+    traces exist in S3/DynamoDB. Demo-scale only."""
+    if store.edges(agent_id):
+        return
+    try:
+        traces = store.list_traces(agent_id, limit=50)
+    except Exception:
+        return
+    for trace in traces:
+        try:
+            index_trace(trace)
+        except Exception:
+            continue
+
+
 def graph(agent_id):
     """GET /agent/{id}/graph"""
+    _ensure_edges(agent_id)
     nodes = {}
     edges = []
     seen = set()

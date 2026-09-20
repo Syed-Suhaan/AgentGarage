@@ -137,9 +137,12 @@ Resources:
       FunctionName: !Sub "${ProjectName}-api"
       Handler: services.api.app.lambda_handler
       CodeUri: ../../cdk/build/lambda/
+      Timeout: 300
+      MemorySize: 2048
       Environment:
         Variables:
           MODE: demo
+          ALLOW_INLINE_SANDBOX: "1"
           TRACES_BUCKET: !Ref TracesBucket
           SANDBOXES_BUCKET: !Ref SandboxesBucket
           EVALS_BUCKET: !Ref EvalsBucket
@@ -172,6 +175,7 @@ Resources:
               Action:
                 - bedrock:InvokeModel
                 - bedrock:InvokeModelWithResponseStream
+                - bedrock:Converse
               Resource: "*"
       Events:
         Proxy:

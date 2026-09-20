@@ -82,9 +82,8 @@ function PhaseSection({ p, index }: { p: (typeof PHASES)[number]; index: number 
     offset: ["start start", "end end"],
   });
 
-  // Scroll → normalized progress → scale + rotation + drift (starts as small dot, expands into right-side orb)
+  // Scroll → scale + drift (sphere spin is shader-only — never CSS-rotate the box)
   const scale = useTransform(scrollYProgress, [0, 0.25, 0.5, 0.75, 1], [0.03, 0.14, 0.55, 0.88, 1]);
-  const rotate = useTransform(scrollYProgress, [0, 1], [0, 38]);
   const driftX = useTransform(scrollYProgress, [0, 0.35, 1], ["-28vw", "-12vw", "0vw"]);
 
   // Track spin for the liquid chrome shader
@@ -137,24 +136,28 @@ function PhaseSection({ p, index }: { p: (typeof PHASES)[number]; index: number 
           </motion.div>
         </div>
 
-        {/* Right Side: Giant Liquid Chrome Orb (Matches Picture 1) */}
+          {/* Right Side: Giant liquid-chrome sphere */}
         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[15%] pointer-events-none z-10 flex items-center justify-center">
           <motion.div
             style={{
               scale,
-              rotate,
               x: driftX,
               transformOrigin: "center center",
             }}
-            className="relative h-[85vh] w-[85vh] sm:h-[94vh] sm:w-[94vh] max-w-[1100px] max-h-[1100px] will-change-transform rounded-full overflow-hidden"
+            className="relative h-[85vh] w-[85vh] sm:h-[94vh] sm:w-[94vh] max-w-[1100px] max-h-[1100px] will-change-transform"
           >
-            {/* High-fidelity fallback liquid metallic gradient */}
-            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.7),transparent_50%),radial-gradient(circle_at_70%_75%,rgba(0,0,0,0.8),transparent_55%),conic-gradient(from_45deg,#1c1c1a,#8f8f8d,#f5f5f4,#2a2a28,#1c1c1a)]" />
-            <ZoahOrb
-              palette={p.palette}
-              spin={spin}
-              className="relative z-10 h-full w-full rounded-full"
-            />
+            {/* Clip in a nested layer so scale/translate never expose a square bounds */}
+            <div
+              className="absolute inset-0 overflow-hidden rounded-full"
+              style={{ clipPath: "circle(50% at 50% 50%)", WebkitClipPath: "circle(50% at 50% 50%)" }}
+            >
+              <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.7),transparent_50%),radial-gradient(circle_at_70%_75%,rgba(0,0,0,0.8),transparent_55%),conic-gradient(from_45deg,#1c1c1a,#8f8f8d,#f5f5f4,#2a2a28,#1c1c1a)]" />
+              <ZoahOrb
+                palette={p.palette}
+                spin={spin}
+                className="relative z-10 h-full w-full block"
+              />
+            </div>
           </motion.div>
         </div>
 

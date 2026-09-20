@@ -98,7 +98,7 @@ def get_trace_from_s3(bucket, key):
     return json.loads(obj["Body"].read())
 
 
-def session_trace_ids(agent_id, limit=3):
+def session_trace_ids(agent_id, limit=50):
     _require_aws()
     if _memory():
         return [s["trace_id"] for s in _MEM["sessions"] if s["agent_id"] == agent_id][:limit]
@@ -106,9 +106,47 @@ def session_trace_ids(agent_id, limit=3):
     resp = _table("SESSIONS_TABLE").scan(
         FilterExpression="agent_id = :a",
         ExpressionAttributeValues={":a": agent_id},
-        Limit=max(limit * 5, 20),
+        Limit=max(limit * 5, 100),
     )
     return [i["trace_id"] for i in (resp.get("Items") or []) if i.get("trace_id")][:limit]
+
+
+def list_traces(agent_id=None, limit=50):
+    """Demo-scale trace listing for the dashboard + graph rebuild.
+
+    Memory mode reads the in-process dict; AWS mode scans the sessions table
+    and fetches each trace body from S3.
+    """
+    _require_aws()
+    if _memory():
+        rows = list(_MEM["traces"].values())
+        if agent_id:
+            rows = [t for t in rows if (t.get("agent_id") or "sre-agent") == agent_id]
+        return rows[:limit]
+    table = _table("SESSIONS_TABLE")
+    if agent_id:
+        resp = table.scan(
+            FilterExpression="agent_id = :a",
+            ExpressionAttributeValues={":a": agent_id},
+            Limit=max(limit * 3, 100),
+        )
+    else:
+        resp = table.scan(Limit=max(limit * 3, 100))
+    out = []
+    for item in resp.get("Items") or []:
+        tid = item.get("trace_id")
+        aid = item.get("agent_id") or "sre-agent"
+        if not tid:
+            continue
+        try:
+            doc = get_trace(aid, tid)
+        except Exception:
+            continue
+        if doc:
+            out.append(doc)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def put_job(rec):

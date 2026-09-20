@@ -75,7 +75,7 @@ def run_sandbox(sandbox_id, scenario, version="1.8.2"):
         "log": spans,
         "origin_trace": origin.get("trace_id") or _first_trace(scenario),
         "agent_message": result.get("agent_message"),
-        "runtime": "agentcore" if agentcore_client.runtime_arn() else "local-test",
+        "runtime": "agentcore" if agentcore_client.runtime_arn() else runtime_label(),
     }
     store.put_sandbox_log(rec)
     sc_id = rec.get("scenario_id")
@@ -87,16 +87,34 @@ def run_sandbox(sandbox_id, scenario, version="1.8.2"):
     return rec
 
 
+def runtime_label():
+    if agentcore_client.runtime_arn():
+        return "agentcore"
+    if os.environ.get("MODE") == "demo" or os.environ.get("ALLOW_INLINE_SANDBOX") == "1":
+        return "demo-inline"
+    return "local-test"
+
+
 def get(sandbox_id):
-    """GET /sandboxes/{id}"""
+    """GET /sandboxes/{id} — full sandbox record for the dashboard."""
     rec = store.get_job(sandbox_id)
     if not rec:
         raise KeyError(sandbox_id)
     return {
         "sandbox_id": rec.get("sandbox_id") or sandbox_id,
+        "scenario_id": rec.get("scenario_id"),
+        "agent_id": rec.get("agent_id"),
+        "agent_version": rec.get("agent_version"),
         "status": rec.get("status"),
         "log_s3": rec.get("log_s3"),
         "invariants": rec.get("invariants"),
+        "final_status": rec.get("final_status"),
+        "fault": rec.get("fault"),
+        "initial_state": rec.get("initial_state"),
+        "log": rec.get("log") or [],
+        "origin_trace": rec.get("origin_trace"),
+        "agent_message": rec.get("agent_message"),
+        "runtime": rec.get("runtime"),
     }
 
 

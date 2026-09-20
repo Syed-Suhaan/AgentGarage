@@ -1,7 +1,8 @@
 """Route handlers for graph, frontier, simulate, replay, evals.
 
-API Gateway entry. Starts Step Functions for sandboxes. Does not run the
-agent and does not compile evals.
+API Gateway entry. Starts Step Functions for sandboxes when
+STATE_MACHINE_ARN is set; otherwise runs the sandbox inline (demo mode) via
+the real agent + code invariants and auto-compiles verified_fail to evals.
 """
 import json
 import os
@@ -73,13 +74,31 @@ def next_sandbox(agent_id):
 
 
 def start_sandbox(scenario_id):
-    """POST /scenarios/{id}/sandbox → Step Functions → AgentCore Runtime."""
-    arn = os.environ.get("STATE_MACHINE_ARN")
-    if not arn:
-        raise RuntimeError("STATE_MACHINE_ARN is required")
+    """POST /scenarios/{id}/sandbox → Step Functions → AgentCore Runtime.
+
+    Demo fallback: when STATE_MACHINE_ARN is unset (SAM team demo), run the
+    sandbox synchronously in this Lambda via the real agent + code
+    invariants, then auto-compile a protected eval on verified_fail. This is
+    what lets judges run a newly invented path end-to-end without SFN /
+    AgentCore wiring. Returns immediately with the finished status.
+    """
     sc = store.get_job(scenario_id)
     if not sc:
         raise KeyError(scenario_id)
+    arn = os.environ.get("STATE_MACHINE_ARN")
+    if not arn:
+        sid = store.nid("sb")
+        rec = replay.run_sandbox(
+            sid, sc, sc.get("agent_version") or "1.8.2",
+        )
+        compiled = evals.compile(rec)
+        return {
+            "sandbox_id": sid,
+            "status": rec.get("status"),
+            "runtime": rec.get("runtime"),
+            "compiled_eval": (compiled or {}).get("id") if compiled else None,
+            "mode": "inline",
+        }
     sid = store.nid("sb")
     store.put_job({
         "id": sid,
@@ -106,6 +125,51 @@ def get_sandbox(sandbox_id):
     return replay.get(sandbox_id)
 
 
+def list_sandboxes():
+    """GET /sandboxes — sandbox runs, newest first. Demo-scale only."""
+    rows = store.list_jobs(kind="sandbox", limit=100)
+    rows = sorted(rows, key=lambda r: r.get("sandbox_id") or "", reverse=True)
+    return {"sandboxes": [
+        {
+            "sandbox_id": r.get("sandbox_id"),
+            "scenario_id": r.get("scenario_id"),
+            "agent_id": r.get("agent_id"),
+            "status": r.get("status"),
+            "fault": r.get("fault"),
+            "runtime": r.get("runtime"),
+        }
+        for r in rows
+    ]}
+
+
+def list_traces(agent_id=None):
+    """GET /traces — ingested production traces for the dashboard."""
+    rows = store.list_traces(agent_id, limit=50)
+    return {"traces": [
+        {
+            "trace_id": t.get("trace_id"),
+            "agent_id": t.get("agent_id"),
+            "agent_version": t.get("agent_version"),
+            "started_at": t.get("started_at"),
+            "spans": t.get("spans") or [],
+        }
+        for t in rows
+    ]}
+
+
+def promote_sandbox(sandbox_id):
+    """POST /sandboxes/{id}/promote — compile a protected eval from a
+    finished sandbox (verified_fail only; verified_pass returns compiled=False
+    so passes never become gates)."""
+    rec = store.get_job(sandbox_id)
+    if not rec:
+        raise KeyError(sandbox_id)
+    compiled = evals.compile(rec)
+    if not compiled:
+        return {"compiled": False, "reason": "sandbox did not fail invariants"}
+    return {"compiled": True, "eval_id": compiled.get("id")}
+
+
 def list_evals():
     return evals.list_evals()
 
@@ -115,7 +179,12 @@ def run_evals(body):
 
 
 def seed_demo(body):
-    """POST /demo/seed — run clean tasks inside AgentCore Runtime, ingest traces."""
+    """POST /demo/seed — run clean tasks, ingest traces, index graph.
+
+    The SAM demo has no EventBridge graph builder, so index each trace
+    synchronously here; otherwise /graph and /unexplored stay empty after
+    seeding and judges can never discover a new dangerous path.
+    """
     import uuid
 
     runs = int((body or {}).get("runs") or 5)
@@ -136,6 +205,10 @@ def seed_demo(body):
             "agent_version": result.get("agent_version") or "1.8.2",
             "spans": result["spans"],
         })
+        try:
+            graph.index_trace(trace)
+        except Exception:
+            pass
         ids.append(trace["trace_id"])
     return {"traces_written": len(ids)}
 
@@ -155,7 +228,12 @@ def dispatch(method, path, body=None):
         ("GET", r"^/agent/([^/]+)/scenarios$", lambda m: list_scenarios(m.group(1))),
         ("GET", r"^/agent/([^/]+)/scenarios/next$", lambda m: next_sandbox(m.group(1))),
         ("POST", r"^/scenarios/([^/]+)/sandbox$", lambda m: start_sandbox(m.group(1))),
+        ("GET", r"^/sandboxes$", lambda m: list_sandboxes()),
+        ("GET", r"^/sandboxes/([^/]+)/promote$", lambda m: promote_sandbox(m.group(1))),
+        ("POST", r"^/sandboxes/([^/]+)/promote$", lambda m: promote_sandbox(m.group(1))),
         ("GET", r"^/sandboxes/([^/]+)$", lambda m: get_sandbox(m.group(1))),
+        ("GET", r"^/traces$", lambda m: list_traces()),
+        ("GET", r"^/agent/([^/]+)/traces$", lambda m: list_traces(m.group(1))),
         ("GET", r"^/evals$", lambda m: list_evals()),
         ("POST", r"^/evals/run$", lambda m: run_evals(body)),
         ("POST", r"^/demo/seed$", lambda m: seed_demo(body)),

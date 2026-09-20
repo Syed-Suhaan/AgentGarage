@@ -45,7 +45,13 @@ compute = Compute(
     stack, "Compute", mode=mode, network=network, storage=storage, graph=graph
 )
 agentcore = AgentCore(
-    stack, "AgentCore", mode=mode, network=network, storage=storage
+    stack,
+    "AgentCore",
+    mode=mode,
+    network=network,
+    storage=storage,
+    bedrock_model_id=compute.bedrock_model_id,
+    bedrock_region=compute.bedrock_region,
 )
 orchestration = Orchestration(
     stack,

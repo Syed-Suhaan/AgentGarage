@@ -64,3 +64,34 @@ class Network(cdk.NestedStack):
             connection=ec2.Port.tcp(8182),
             description="Gremlin/openCypher from query/builder Lambdas",
         )
+
+        # AgentCore Runtime microVMs: no ingress. HTTPS egress via NAT for
+        # cross-region Bedrock (Nova lives in us-east-1). VPC endpoints for
+        # ECR/Logs so image pull + logging stay off the public internet.
+        # Endpoints live here (not in AgentCore nested stack) to avoid a
+        # Network ↔ AgentCore circular dependency.
+        self.sandbox_sg = ec2.SecurityGroup(
+            self,
+            "SandboxSG",
+            vpc=self.vpc,
+            description="AgentCore Runtime microVMs: HTTPS egress + VPC endpoints",
+            allow_all_outbound=False,
+        )
+        self.sandbox_sg.add_egress_rule(
+            peer=ec2.Peer.any_ipv4(),
+            connection=ec2.Port.tcp(443),
+            description="HTTPS to Bedrock / ECR / Logs",
+        )
+        for name, service in (
+            ("AgentCoreEcrApi", ec2.InterfaceVpcEndpointAwsService.ECR),
+            ("AgentCoreEcrDkr", ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER),
+            ("AgentCoreLogs", ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS),
+        ):
+            self.vpc.add_interface_endpoint(
+                name,
+                service=service,
+                subnets=ec2.SubnetSelection(
+                    subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
+                ),
+                security_groups=[self.sandbox_sg],
+            )

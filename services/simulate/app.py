@@ -103,12 +103,40 @@ def _normalize_initial_state(raw):
     return merged
 
 
+def _heuristic_predict(state, action):
+    """Offline fallback so judges can always invent a path, even when Bedrock
+    is unreachable. Maps the action to a fault injection and drafts a
+    hypothesis + initial state; Jev/heuristic ranking still scores it."""
+    tool, behavior = ACTION_FAULT.get(action, (action, action))
+    return {
+        "hypothesis": (
+            f"When {tool} returns {behavior} from state {state}, the agent "
+            "mis-handles the ambiguous result and leaves checkout unrestored "
+            "(retry without re-checking state, or missing verification)."
+        ),
+        "initial_state": default_initial_state(),
+        "fault": {"tool": tool, "behavior": behavior},
+    }
+
+
 def _predict(state, action):
     url = os.environ.get("WORLD_MODEL_URL")
     if url:
-        return _http_world_model(url, state, action)
+        try:
+            return _http_world_model(url, state, action)
+        except RuntimeError:
+            if os.environ.get("MODE") == "demo" or os.environ.get("ALLOW_INLINE_SANDBOX") == "1":
+                return _heuristic_predict(state, action)
+            raise
     if os.environ.get("BEDROCK_MODEL_ID"):
-        return _bedrock_world_model(state, action)
+        try:
+            return _bedrock_world_model(state, action)
+        except Exception:
+            if os.environ.get("MODE") == "demo" or os.environ.get("ALLOW_INLINE_SANDBOX") == "1":
+                return _heuristic_predict(state, action)
+            raise
+    if os.environ.get("MODE") == "demo" or os.environ.get("ALLOW_INLINE_SANDBOX") == "1":
+        return _heuristic_predict(state, action)
     raise RuntimeError("set WORLD_MODEL_URL or BEDROCK_MODEL_ID")
 
 

@@ -3,6 +3,8 @@ import type {
   UnexploredGap,
   Scenario,
   SandboxResult,
+  SandboxSummary,
+  Trace,
   Eval,
   EvalRunResult,
   SeedResult,
@@ -64,7 +66,7 @@ export function simulate(
 
 export function startSandbox(
   scenarioId: string
-): Promise<{ sandbox_id: string; status: string }> {
+): Promise<{ sandbox_id: string; status: string; compiled_eval?: string | null; mode?: string; runtime?: string }> {
   return request(`/scenarios/${scenarioId}/sandbox`, {
     method: "POST",
     body: JSON.stringify({ scenario_id: scenarioId }),
@@ -73,6 +75,22 @@ export function startSandbox(
 
 export function getSandbox(sandboxId: string): Promise<SandboxResult> {
   return request<SandboxResult>(`/sandboxes/${sandboxId}`);
+}
+
+export function listSandboxes(): Promise<{ sandboxes: SandboxSummary[] }> {
+  return request<{ sandboxes: SandboxSummary[] }>(`/sandboxes`);
+}
+
+export function promoteSandbox(
+  sandboxId: string
+): Promise<{ compiled: boolean; eval_id?: string; reason?: string }> {
+  return request(`/sandboxes/${sandboxId}/promote`, { method: "POST" });
+}
+
+export function listTraces(agentId?: string): Promise<{ traces: Trace[] }> {
+  return request<{ traces: Trace[] }>(
+    agentId ? `/agent/${agentId}/traces` : `/traces`
+  );
 }
 
 export function listEvals(): Promise<{ evals: Eval[] }> {
@@ -212,7 +230,13 @@ async function getMockData<T>(path: string, options?: RequestInit): Promise<T> {
     return { scenarios: [MOCK_SCENARIO] } as T;
   if (path.includes("/sandbox") && options?.method === "POST")
     return { sandbox_id: "sb_07", status: "running" } as T;
+  if (path === "/sandboxes")
+    return { sandboxes: [{ sandbox_id: "sb_07", scenario_id: "sc_19", agent_id: "sre-agent", status: "verified_fail", fault: MOCK_SCENARIO.fault, runtime: "mock" }] } as T;
+  if (path.includes("/promote"))
+    return { compiled: true, eval_id: MOCK_EVAL.id } as T;
   if (path.includes("/sandboxes/")) return MOCK_SANDBOX as T;
+  if (path.includes("/traces"))
+    return { traces: [] } as T;
   if (path.includes("/evals/run"))
     return { passed: 1, failed: 0 } as T;
   if (path.includes("/evals")) return { evals: [MOCK_EVAL] } as T;
