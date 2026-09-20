@@ -87,11 +87,9 @@ export function SandboxFeedCard() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/5 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/5 text-zinc-300">
-            <Terminal className="h-3.5 w-3.5" />
-          </div>
+          <Terminal className="h-4 w-4 text-white" />
           <h3 className="text-base font-semibold tracking-tight text-white">
-            Sandbox sb_07
+            Sandbox
           </h3>
         </div>
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-zinc-400">
