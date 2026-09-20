@@ -101,6 +101,17 @@ const PILLARS = [
   },
 ];
 
+const AWS_PRIMITIVES = [
+  "S3",
+  "DynamoDB",
+  "Neptune",
+  "AgentCore",
+  "Step Functions",
+  "Bedrock",
+  "CDK",
+  "Next.js",
+];
+
 function PhaseSection({ p, index }: { p: (typeof PHASES)[number]; index: number }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [spin, setSpin] = useState(0);
@@ -294,10 +305,34 @@ export default function LandingPage() {
             Run the 6-step demo
           </Link>
         </div>
-        <p className="mt-6 font-mono text-[11px] uppercase tracking-widest text-zinc-500">
-          Observed → Predicted → Verified → Protected
-        </p>
       </section>
+
+      {/* Infinite Horizontal Logo Marquee placed below hero buttons */}
+      <div className="w-full overflow-hidden py-12 sm:py-16 border-t border-b border-white/5 bg-[#0a0a0a]">
+        <p className="text-center text-xs sm:text-sm text-zinc-500 mb-7 tracking-wide font-normal">
+          Runs inside your AWS account on the same primitives you already use
+        </p>
+        <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+          <motion.div
+            className="flex items-center gap-14 sm:gap-20 whitespace-nowrap will-change-transform py-2"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{
+              duration: 25,
+              ease: "linear",
+              repeat: Infinity,
+            }}
+          >
+            {[...AWS_PRIMITIVES, ...AWS_PRIMITIVES].map((tech, idx) => (
+              <span
+                key={idx}
+                className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-zinc-400 hover:text-white transition-colors cursor-default select-none"
+              >
+                {tech}
+              </span>
+            ))}
+          </motion.div>
+        </div>
+      </div>
 
       {/* Phases — Scroll-driven alternating storytelling with orbs */}
       <section className="border-t border-white/5">
@@ -306,15 +341,6 @@ export default function LandingPage() {
         ))}
       </section>
 
-      {/* Trust strip */}
-      <section className="border-b border-white/5 py-14">
-        <p className="text-center text-xs text-zinc-500">Runs inside your AWS account on the same primitives you already use</p>
-        <div className="mx-auto mt-6 flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-medium text-zinc-500">
-          {["S3", "DynamoDB", "Neptune", "AgentCore", "Step Functions", "Bedrock", "CDK", "Next.js"].map((t) => (
-            <span key={t} className="hover:text-zinc-300 transition-colors">{t}</span>
-          ))}
-        </div>
-      </section>
 
       {/* Pillars */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
