@@ -59,7 +59,7 @@ export function StateInspector({ node, onClose, onSelectNode }: StateInspectorPr
   const Icon = ICON_MAP[node.iconName as keyof typeof ICON_MAP] || CreditCard;
 
   return (
-    <aside className="w-80 sm:w-96 shrink-0 border-l border-[#2a2a28] bg-[#0c0c0b] flex flex-col h-full overflow-hidden select-none z-20">
+    <aside className="flex-1 flex flex-col min-h-0 overflow-hidden select-none">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#2a2a28] px-4 py-3.5 bg-[#10100f]">
         <div className="flex items-center gap-2">
