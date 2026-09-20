@@ -12,6 +12,7 @@ import {
   Zap,
   BarChart3,
   Terminal,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Overview", icon: BarChart3, exact: true },
+  {
+    href: "/dashboard/live",
+    label: "Live Garage",
+    sublabel: "(sprite agent bay)",
+    icon: Bot,
+  },
   { href: "/dashboard/graph", label: "Behaviour Graph", icon: GitBranch },
   { href: "/dashboard/traces", label: "Traces", icon: Activity },
   {
