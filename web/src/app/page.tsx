@@ -311,10 +311,7 @@ export default function LandingPage() {
       <div className="w-full overflow-hidden py-12 sm:py-16 border-t border-b border-white/5 bg-[#0a0a0a]">
         <p className="text-center text-xs sm:text-sm text-zinc-400 mb-7 tracking-wide font-normal">
           Runs inside your AWS account — deployed with{" "}
-          <span className="font-semibold text-white bg-white/10 border border-white/20 px-2 py-0.5 rounded text-[11px] sm:text-xs font-mono shadow-sm">
-            AWS CDK
-          </span>{" "}
-          on the same primitives you already use
+          <span className="text-white font-medium">CDK</span> on the same primitives you already use
         </p>
         <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
           <motion.div
