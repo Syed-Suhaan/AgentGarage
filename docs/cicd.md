@@ -8,8 +8,8 @@ CDK under `cdk/` is the **customer** one-click package — leave it for the end 
 This path deploys the **team live demo** on every push to `main`:
 
 1. SAM stack `agentgarage-demo` in `ap-south-2` (Lambda API + S3 + DynamoDB + Cognito)
-2. Amplify stack `agentgarage-demo-amplify` in `us-east-1`
-3. Zip-upload of `web/out` via `scripts/deploy_amplify.py`
+2. Amplify stack `agentgarage-demo-amplify` in `us-east-1` (custom headers: HTML `no-cache`, `/_next/static/**` long-cache)
+3. Zip-upload of `web/out` via `scripts/deploy_amplify.py`, then CloudFront `/*` invalidation
 
 ## One-time AWS setup
 

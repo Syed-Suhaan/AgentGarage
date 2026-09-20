@@ -21,6 +21,21 @@ Resources:
     Properties:
       Name: !Ref ProjectName
       Platform: WEB
+      # HTML must not sit on the CDN for a year; hashed Next chunks can.
+      CustomHeaders: |
+        customHeaders:
+          - pattern: /_next/static/**
+            headers:
+              - key: Cache-Control
+                value: public, max-age=31536000, immutable
+          - pattern: "**/*.html"
+            headers:
+              - key: Cache-Control
+                value: max-age=0, no-cache, no-store, must-revalidate
+          - pattern: "**/*"
+            headers:
+              - key: Cache-Control
+                value: max-age=0, must-revalidate
       EnvironmentVariables:
         - Name: NEXT_PUBLIC_API_URL
           Value: !Ref ApiUrl
