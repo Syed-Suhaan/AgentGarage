@@ -53,13 +53,17 @@ Trust policy (replace `ACCOUNT_ID` and keep the repo name):
 
 Attach a deploy policy that can manage CloudFormation, SAM/S3 artifacts, Lambda, API Gateway, DynamoDB, Cognito, Amplify, IAM (for SAM roles), and pass roles. For a hackathon, `AdministratorAccess` on a dedicated demo account is fine.
 
-### 3. GitHub secret
+### 3. GitHub secrets
 
 In the repo → **Settings → Secrets and variables → Actions**:
 
 | Name | Value |
 |------|--------|
-| `AWS_ROLE_ARN` | `arn:aws:iam::ACCOUNT_ID:role/AgentGarageGitHubDeploy` |
+| `AWS_ACCESS_KEY_ID` | IAM user access key (demo deploy user) |
+| `AWS_SECRET_ACCESS_KEY` | Matching secret |
+
+Hackathon default: IAM user `AgentGarageGitHubDeployUser` with `AdministratorAccess`.
+OIDC role `AgentGarageGitHubDeploy` exists for a later switch; workflows currently use access keys.
 
 ### 4. Bootstrap SAM publishing bucket (first deploy)
 
