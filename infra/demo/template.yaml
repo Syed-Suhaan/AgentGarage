@@ -179,8 +179,13 @@ Resources:
               Resource: "*"
         # Lets the demo API fire-and-forget async self-invocations for long
         # sandbox/seed worker runs (API Gateway answers after 30s).
-        - LambdaInvokePolicy:
-            FunctionName: !Ref ApiFunction
+        # NOTE: referenced by function *name* (not !Ref ApiFunction) —
+        # a !Ref here creates a circular dependency (role → function → role)
+        # and fails the changeset.
+        - Statement:
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-api"
       Events:
         Proxy:
           Type: HttpApi
