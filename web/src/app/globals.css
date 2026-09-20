@@ -30,7 +30,11 @@
 @layer base {
   * {
     @apply border-border;
-    border-radius: 0 !important;
+  }
+  .rounded-full,
+  [class*="rounded-full"],
+  .state-node-circle {
+    border-radius: 9999px !important;
   }
   body {
     @apply bg-background text-foreground antialiased;

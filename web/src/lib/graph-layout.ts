@@ -1,20 +1,26 @@
 import dagre from "dagre";
 import type { Node, Edge } from "@xyflow/react";
 import type { AgentGraph } from "./types";
-import { AGENTGARAGE_NODES, AGENTGARAGE_EDGES } from "./graph-reference-data";
+import {
+  AGENTGARAGE_NODES,
+  AGENTGARAGE_EDGES,
+  type ReferenceNodeMetadata,
+  type ReferenceEdge,
+} from "./graph-reference-data";
 
-const NODE_DIAMETER = 110;
+const NODE_DIAMETER = 112;
 
 export function layoutGraph(
   graph?: AgentGraph,
-  layoutMode: "force" | "LR" | "TB" = "force"
+  layoutMode: "force" | "LR" | "TB" = "force",
+  activeNodes: Record<string, ReferenceNodeMetadata> = AGENTGARAGE_NODES,
+  activeEdges: ReferenceEdge[] = AGENTGARAGE_EDGES
 ): { nodes: Node[]; edges: Edge[] } {
-  // If custom graph with nodes is provided (e.g. unit tests or specific agent graph)
-  if (graph && graph.nodes && graph.nodes.length > 0) {
-    const rankdir = layoutMode === "force" ? "LR" : layoutMode;
+  // If a custom graph is passed with explicit nodes and layoutMode is hierarchical (LR / TB)
+  if (graph && graph.nodes && graph.nodes.length > 0 && (layoutMode === "LR" || layoutMode === "TB")) {
     const g = new dagre.graphlib.Graph();
     g.setDefaultEdgeLabel(() => ({}));
-    g.setGraph({ rankdir, nodesep: 70, ranksep: 100 });
+    g.setGraph({ rankdir: layoutMode, nodesep: 70, ranksep: 100 });
 
     graph.nodes.forEach((node) => {
       g.setNode(node.id, { width: NODE_DIAMETER, height: NODE_DIAMETER });
@@ -28,7 +34,7 @@ export function layoutGraph(
 
     const nodes: Node[] = graph.nodes.map((node) => {
       const pos = g.node(node.id);
-      const meta = AGENTGARAGE_NODES[node.id];
+      const meta = activeNodes[node.id];
       return {
         id: node.id,
         type: "stateNode",
@@ -36,7 +42,13 @@ export function layoutGraph(
           x: (pos?.x ?? 0) - NODE_DIAMETER / 2,
           y: (pos?.y ?? 0) - NODE_DIAMETER / 2,
         },
-        data: (meta || { label: node.label, id: node.id, runs: 100, iconName: "Database", stateId: `S_${node.id.toUpperCase()}` }) as unknown as Record<string, unknown>,
+        data: (meta || {
+          label: node.label,
+          id: node.id,
+          runs: 48,
+          iconName: "Database",
+          stateId: `S_${node.id.toUpperCase()}`,
+        }) as unknown as Record<string, unknown>,
       };
     });
 
@@ -56,22 +68,37 @@ export function layoutGraph(
     return { nodes, edges };
   }
 
-  // Default AgentGarage full reference layout
-  const nodeEntries = Object.values(AGENTGARAGE_NODES);
+  // If hierarchical layout mode (LR or TB) without custom graph
+  if (layoutMode === "LR" || layoutMode === "TB") {
+    const nodeEntries = Object.values(activeNodes);
+    const g = new dagre.graphlib.Graph();
+    g.setDefaultEdgeLabel(() => ({}));
+    g.setGraph({ rankdir: layoutMode, nodesep: 70, ranksep: 120 });
 
-  if (layoutMode === "force") {
-    // Exact organic visual arrangement matching the reference screenshot
-    const nodes: Node[] = nodeEntries.map((node) => ({
-      id: node.id,
-      type: "stateNode",
-      position: {
-        x: node.position.x,
-        y: node.position.y,
-      },
-      data: node as unknown as Record<string, unknown>,
-    }));
+    nodeEntries.forEach((node) => {
+      g.setNode(node.id, { width: NODE_DIAMETER, height: NODE_DIAMETER });
+    });
 
-    const edges: Edge[] = AGENTGARAGE_EDGES.map((edge) => ({
+    activeEdges.forEach((edge) => {
+      g.setEdge(edge.from, edge.to);
+    });
+
+    dagre.layout(g);
+
+    const nodes: Node[] = nodeEntries.map((node) => {
+      const pos = g.node(node.id);
+      return {
+        id: node.id,
+        type: "stateNode",
+        position: {
+          x: (pos?.x ?? 0) - NODE_DIAMETER / 2,
+          y: (pos?.y ?? 0) - NODE_DIAMETER / 2,
+        },
+        data: node as unknown as Record<string, unknown>,
+      };
+    });
+
+    const edges: Edge[] = activeEdges.map((edge) => ({
       id: edge.id,
       source: edge.from,
       target: edge.to,
@@ -90,35 +117,20 @@ export function layoutGraph(
     return { nodes, edges };
   }
 
-  // Hierarchical layout with dagre (LR or TB)
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: layoutMode, nodesep: 70, ranksep: 120 });
+  // Force-Directed Mode: Always use Curated Spacious 2D Arrangement matching Reference Mockup
+  const nodeEntries = Object.values(activeNodes);
 
-  nodeEntries.forEach((node) => {
-    g.setNode(node.id, { width: NODE_DIAMETER, height: NODE_DIAMETER });
-  });
+  const nodes: Node[] = nodeEntries.map((node) => ({
+    id: node.id,
+    type: "stateNode",
+    position: {
+      x: node.position.x,
+      y: node.position.y,
+    },
+    data: node as unknown as Record<string, unknown>,
+  }));
 
-  AGENTGARAGE_EDGES.forEach((edge) => {
-    g.setEdge(edge.from, edge.to);
-  });
-
-  dagre.layout(g);
-
-  const nodes: Node[] = nodeEntries.map((node) => {
-    const pos = g.node(node.id);
-    return {
-      id: node.id,
-      type: "stateNode",
-      position: {
-        x: (pos?.x ?? 0) - NODE_DIAMETER / 2,
-        y: (pos?.y ?? 0) - NODE_DIAMETER / 2,
-      },
-      data: node as unknown as Record<string, unknown>,
-    };
-  });
-
-  const edges: Edge[] = AGENTGARAGE_EDGES.map((edge) => ({
+  const edges: Edge[] = activeEdges.map((edge) => ({
     id: edge.id,
     source: edge.from,
     target: edge.to,

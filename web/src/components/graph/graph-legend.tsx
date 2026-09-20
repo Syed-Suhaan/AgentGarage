@@ -4,8 +4,8 @@ import { memo } from "react";
 
 export function GraphLegend() {
   return (
-    <div className="shrink-0 border-b border-[#2a2a28] bg-[#0c0c0b] p-3.5 select-none">
-      <p className="text-[11px] font-mono uppercase font-bold tracking-wider text-[#8f8f8d] mb-3">
+    <div className="rounded-xl border border-dashed border-[#2a2a28] bg-[#0c0c0b]/90 backdrop-blur-md p-3.5 shadow-2xl select-none min-w-[210px]">
+      <p className="text-[11px] font-mono uppercase font-bold tracking-wider text-[#8f8f8d] mb-2.5">
         Legend
       </p>
 

@@ -21,8 +21,7 @@ import { StateInspector } from "./state-inspector";
 import { LinkedTraceDrawer } from "./linked-trace-drawer";
 import { layoutGraph } from "@/lib/graph-layout";
 import {
-  AGENTGARAGE_NODES,
-  AGENTGARAGE_TRACE,
+  getAgentReferenceData,
   type ReferenceNodeMetadata,
 } from "@/lib/graph-reference-data";
 import { cn } from "@/lib/utils";
@@ -37,21 +36,35 @@ interface BehaviourGraphProps {
   graph?: AgentGraph;
 }
 
-function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
+const AGENT_OPTIONS = [
+  { id: "sre-agent", label: "SRE Agent (Autonomous Bedrock Remediation)" },
+  { id: "refund-agent", label: "Customer Support Agent (Refund Dialogue)" },
+];
+
+function BehaviourGraphInner({ graph: _graph }: BehaviourGraphProps) {
+  const [agentKey, setAgentKey] = useState<string>("sre-agent");
   const [layoutMode, setLayoutMode] = useState<"force" | "LR" | "TB">("force");
-  const [selectedNodeId, setSelectedNodeId] = useState<string>("rollback_succeeded");
   const [filterKind, setFilterKind] = useState<FilterKind>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [isAgentMenuOpen, setIsAgentMenuOpen] = useState(false);
   const [timeRange, setTimeRange] = useState("Last 7 days");
-  const [agentName, setAgentName] = useState("sre-agent");
 
   const { fitView, setCenter } = useReactFlow();
 
-  // Compute graph nodes and edges
+  // Active agent reference dataset
+  const activeDataset = useMemo(() => getAgentReferenceData(agentKey), [agentKey]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>(activeDataset.initialSelected);
+
+  // When agent switches, reset selected node to initial focal hub
+  useEffect(() => {
+    setSelectedNodeId(activeDataset.initialSelected);
+  }, [activeDataset]);
+
+  // Compute graph nodes and edges using active dataset and layout mode
   const { nodes: rawNodes, edges: rawEdges } = useMemo(
-    () => layoutGraph(graph && graph.nodes.length ? graph : undefined, layoutMode),
-    [layoutMode, graph]
+    () => layoutGraph(undefined, layoutMode, activeDataset.nodes, activeDataset.edges),
+    [layoutMode, activeDataset]
   );
 
   // Filter edges based on selected filter pill
@@ -64,11 +77,11 @@ function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
     });
   }, [rawEdges, filterKind]);
 
-  // Highlight selected node and filter by search
+  // Highlight selected node and filter by search query
   const nodes = useMemo(() => {
     return rawNodes.map((n) => {
       const isSelected = n.id === selectedNodeId;
-      const meta = AGENTGARAGE_NODES[n.id];
+      const meta = activeDataset.nodes[n.id];
       const matchesSearch =
         !searchQuery ||
         n.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -83,15 +96,15 @@ function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
         },
       };
     });
-  }, [rawNodes, selectedNodeId, searchQuery]);
+  }, [rawNodes, selectedNodeId, searchQuery, activeDataset]);
 
-  // Initial fit view
+  // Auto-fit on layout or agent change
   useEffect(() => {
     const timer = setTimeout(() => {
-      fitView({ padding: 0.12, duration: 600 });
-    }, 150);
+      fitView({ padding: 0.14, duration: 600 });
+    }, 120);
     return () => clearTimeout(timer);
-  }, [layoutMode, fitView]);
+  }, [layoutMode, agentKey, fitView]);
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNodeId(node.id);
@@ -101,31 +114,63 @@ function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
   const handleCenterSelected = useCallback(() => {
     const node = nodes.find((n) => n.id === selectedNodeId);
     if (node) {
-      setCenter(node.position.x + 55, node.position.y + 55, { zoom: 1.1, duration: 600 });
+      setCenter(node.position.x + 56, node.position.y + 56, { zoom: 1.15, duration: 600 });
     } else {
-      fitView({ padding: 0.15, duration: 500 });
+      fitView({ padding: 0.14, duration: 500 });
     }
   }, [nodes, selectedNodeId, setCenter, fitView]);
 
   const activeNodeMeta: ReferenceNodeMetadata =
-    AGENTGARAGE_NODES[selectedNodeId] || AGENTGARAGE_NODES.rollback_succeeded;
+    activeDataset.nodes[selectedNodeId] ||
+    activeDataset.nodes[activeDataset.initialSelected] ||
+    Object.values(activeDataset.nodes)[0];
 
   return (
     <div className="flex h-full w-full flex-col bg-[#080808] text-[#f3f3f1] overflow-hidden select-none font-sans">
       {/* Top Filter & Toolbar Bar */}
-      <div className="border-b border-[#2a2a28] bg-[#0c0c0b] px-5 py-3 flex flex-wrap items-center justify-between gap-3 text-xs z-10">
+      <div className="border-b border-[#2a2a28] bg-[#0c0c0b] px-5 py-3 flex flex-wrap items-center justify-between gap-3 text-xs z-20">
         <div className="flex items-center flex-wrap gap-2.5">
-          {/* Agent Selector Dropdown */}
+          {/* Interactive Agent Selector Dropdown */}
           <div className="relative">
-            <button className="flex items-center gap-2 rounded-lg border border-dashed border-[#2a2a28] bg-[#141413] px-3 py-1.5 font-mono text-xs text-[#f3f3f1] hover:border-zinc-500 transition-colors">
-              <span>{agentName}</span>
+            <button
+              onClick={() => setIsAgentMenuOpen(!isAgentMenuOpen)}
+              className="flex items-center gap-2 rounded-lg border border-dashed border-[#2a2a28] bg-[#141413] px-3 py-1.5 font-mono text-xs text-[#f3f3f1] hover:border-zinc-500 transition-colors"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[#3b76ff] animate-pulse" />
+              <span className="font-semibold">{activeDataset.agentName}</span>
               <ChevronDown className="h-3 w-3 text-[#8f8f8d]" />
             </button>
+
+            {isAgentMenuOpen && (
+              <div className="absolute left-0 top-9 z-50 w-72 rounded-xl border border-[#2a2a28] bg-[#141413] p-1.5 shadow-2xl font-mono text-xs">
+                {AGENT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setAgentKey(opt.id);
+                      setIsAgentMenuOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-left transition-colors",
+                      agentKey === opt.id
+                        ? "bg-[#3b76ff]/20 text-[#3b76ff] font-semibold"
+                        : "text-[#8f8f8d] hover:bg-[#1a1a18] hover:text-[#f3f3f1]"
+                    )}
+                  >
+                    <span>{opt.label}</span>
+                    {agentKey === opt.id && <Check className="h-3.5 w-3.5" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Time Range Selector */}
           <div className="relative">
-            <button className="flex items-center gap-2 rounded-lg border border-dashed border-[#2a2a28] bg-[#141413] px-3 py-1.5 font-mono text-xs text-[#8f8f8d] hover:text-[#f3f3f1] hover:border-zinc-500 transition-colors">
+            <button
+              onClick={() => setTimeRange(timeRange === "Last 7 days" ? "Last 24 hours" : "Last 7 days")}
+              className="flex items-center gap-2 rounded-lg border border-dashed border-[#2a2a28] bg-[#141413] px-3 py-1.5 font-mono text-xs text-[#8f8f8d] hover:text-[#f3f3f1] hover:border-zinc-500 transition-colors"
+            >
               <span>{timeRange}</span>
               <ChevronDown className="h-3 w-3 text-[#8f8f8d]" />
             </button>
@@ -146,7 +191,7 @@ function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
 
         {/* Filter Pills & Layout Controls */}
         <div className="flex items-center flex-wrap gap-2.5">
-          {/* Filter Pills with Counts matching screenshot */}
+          {/* Filter Pills with Counts matching reference mockup */}
           <div className="flex items-center rounded-xl border border-dashed border-[#2a2a28] bg-[#141413] p-0.5 text-xs font-mono">
             <button
               onClick={() => setFilterKind("all")}
@@ -236,26 +281,29 @@ function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
             edgeTypes={edgeTypes}
             onNodeClick={handleNodeClick}
             fitView
-            fitViewOptions={{ padding: 0.12 }}
+            fitViewOptions={{ padding: 0.14 }}
             proOptions={{ hideAttribution: true }}
-            minZoom={0.25}
-            maxZoom={2.2}
+            minZoom={0.2}
+            maxZoom={2.4}
             className="bg-[#080808]"
           >
             <Background color="#1a1a18" gap={24} size={1} />
-            
+
+            {/* Floating Legend Overlay (Bottom Left) matching reference screenshot */}
+            <div className="absolute bottom-4 left-4 z-10 pointer-events-auto">
+              <GraphLegend />
+            </div>
+
             {/* Floating Controls Toolbar (Bottom Right) */}
             <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2.5">
               <CanvasControls onCenterSelected={handleCenterSelected} />
             </div>
           </ReactFlow>
-
         </div>
 
-        {/* Right column: Legend above State Inspector */}
+        {/* Right column: Full-Height State Inspector */}
         <div className="w-80 sm:w-96 shrink-0 border-l border-[#2a2a28] bg-[#0c0c0b] flex flex-col h-full overflow-hidden z-20">
-          <GraphLegend />
-          {isInspectorOpen && (
+          {isInspectorOpen ? (
             <StateInspector
               node={activeNodeMeta}
               onClose={() => setIsInspectorOpen(false)}
@@ -264,13 +312,23 @@ function BehaviourGraphInner({ graph }: BehaviourGraphProps) {
                 handleCenterSelected();
               }}
             />
+          ) : (
+            <div className="p-4 flex flex-col items-center justify-center h-full text-center text-xs font-mono text-[#8f8f8d]">
+              <p>Inspector Closed</p>
+              <button
+                onClick={() => setIsInspectorOpen(true)}
+                className="mt-2 text-[#3b76ff] hover:underline"
+              >
+                Open State Inspector
+              </button>
+            </div>
           )}
         </div>
       </div>
 
       {/* Bottom Linked Trace Drawer */}
       <LinkedTraceDrawer
-        trace={AGENTGARAGE_TRACE}
+        trace={activeDataset.trace}
         activeNodeId={selectedNodeId}
         onSelectNode={(id) => {
           setSelectedNodeId(id);

@@ -103,8 +103,9 @@ function StateNodeComponent({ data, selected }: NodeProps) {
 
       {/* Circular Node Container */}
       <div
+        style={{ borderRadius: "9999px" }}
         className={cn(
-          "relative flex flex-col items-center justify-center rounded-full transition-all duration-300 select-none",
+          "state-node-circle relative flex flex-col items-center justify-center !rounded-full transition-all duration-300 select-none",
           "w-28 h-28 bg-[#0c0c0b] text-center p-2",
           // Normal state
           "border border-[#2a2a28] shadow-lg shadow-black/80 hover:border-zinc-400",
@@ -119,8 +120,9 @@ function StateNodeComponent({ data, selected }: NodeProps) {
       >
         {/* Subtle Concentric Inner Ring */}
         <div
+          style={{ borderRadius: "9999px" }}
           className={cn(
-            "absolute inset-1.5 rounded-full border border-dashed pointer-events-none transition-colors",
+            "state-node-circle absolute inset-1.5 !rounded-full border border-dashed pointer-events-none transition-colors",
             isSelected
               ? "border-[#3b76ff]/40"
               : isFailure
